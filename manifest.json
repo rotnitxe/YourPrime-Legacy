@@ -1,0 +1,21 @@
+{
+  "name": "YourPrime: Entrenador IA",
+  "short_name": "YourPrime",
+  "start_url": ".",
+  "scope": "/",
+  "display_override": [
+    "standalone"
+  ],
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "Un creador y seguidor de rutinas de gimnasio inteligente.",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

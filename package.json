@@ -1,0 +1,33 @@
+{
+  "name": "yourprime-v2",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Un creador y seguidor de rutinas de gimnasio inteligente. Disena planes de entrenamiento personalizados, sigue tu progreso con metricas avanzadas y aprovecha la IA para generar nuevos ejercicios y rutinas adaptadas a tus objetivos.",
+  "scripts": {
+    "build": "esbuild index.tsx --bundle --outfile=www/index.js --jsx=automatic --loader:.js=jsx --loader:.ts=tsx && npx cpx2 index.html www && npx cpx2 favicon.svg www && npx cpx2 manifest.json www",
+    "cap:add": "npx cap add android",
+    "cap:sync": "npm run build && npx cap sync android",
+    "cap:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0",
+    "@capacitor/splash-screen": "^6.0.0",
+    "@capacitor/local-notifications": "^6.0.0",
+    "@capacitor/camera": "^6.0.0",
+    "@capacitor/preferences": "^6.0.0",
+    "@google/genai": "^1.16.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "recharts": "^2.12.7"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "typescript": "^5.5.2",
+    "esbuild": "^0.20.2",
+    "cpx2": "^4.2.0"
+  }
+}

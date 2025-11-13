@@ -29,43 +29,39 @@ import StartWorkoutModal from './components/StartWorkoutModal';
 // Icons for header
 // FIX: Import SaveIcon to fix missing member error.
 import { ArrowLeftIcon, PlayIcon, PauseIcon, XIcon, SaveIcon, PlusIcon } from './components/icons';
-
-// --- Static Imports for Performance ---
-import Home from './components/Home';
-import ProgramDetail from './components/ProgramDetail';
-import ProgramEditor from './components/ProgramEditor';
-// FIX: Import SessionEditor to resolve 'Cannot find name' error.
-import SessionEditor from './components/SessionEditor';
-// FIX: Module '"file:///components/WorkoutSession"' has no default export. Changed to a named import.
-import { WorkoutSession } from './components/WorkoutSession';
-import SettingsComponent from './components/Settings';
-import CoachView from './components/CoachView';
-import PhysicalProgress from './components/PhysicalProgress';
-import LogHub from './components/LogHub';
-import AchievementsView from './components/AchievementsView';
-import LogWorkoutView from './components/LogWorkoutView';
-import YourLab from './components/YourLab';
-import FeedView from './components/FeedView';
-// FIX: Changed to a named import to resolve a module loading issue.
-import { ExerciseDetailView } from './components/ExerciseDetailView';
-import MuscleGroupDetailView from './components/MuscleGroupDetailView';
-import HallOfFameView from './components/HallOfFameView';
-import BodyPartDetailView from './components/BodyPartDetailView';
-import MuscleCategoryView from './components/MuscleCategoryView';
-import ChainDetailView from './components/ChainDetailView';
 import CreatePostModal from './components/CreatePostModal';
 import EditPostModal from './components/EditPostModal';
 // FIX: Changed to a named import to resolve a module loading issue.
 import { FeedCustomizationSheet } from './components/FeedCustomizationSheet';
 import Button from './components/ui/Button';
 import MuscleListEditorModal from './components/MuscleListEditorModal';
-import BodyLabView from './components/BodyLabView';
-import TrainingPurposeView from './components/TrainingPurposeView';
-import ExerciseDatabaseView from './components/ExerciseDatabaseView';
-import TasksView from './components/TasksView';
-import SessionDetailView from './components/SessionDetailView';
-import SmartMealPlannerView from './components/SmartMealPlannerView';
 
+// --- Lazy Imports for Performance ---
+const Home = React.lazy(() => import('./components/Home'));
+const ProgramDetail = React.lazy(() => import('./components/ProgramDetail'));
+const ProgramEditor = React.lazy(() => import('./components/ProgramEditor'));
+const SessionEditor = React.lazy(() => import('./components/SessionEditor'));
+const WorkoutSession = React.lazy(() => import('./components/WorkoutSession').then(module => ({ default: module.WorkoutSession })));
+const SettingsComponent = React.lazy(() => import('./components/Settings'));
+const CoachView = React.lazy(() => import('./components/CoachView'));
+const PhysicalProgress = React.lazy(() => import('./components/PhysicalProgress'));
+const LogHub = React.lazy(() => import('./components/LogHub'));
+const AchievementsView = React.lazy(() => import('./components/AchievementsView'));
+const LogWorkoutView = React.lazy(() => import('./components/LogWorkoutView'));
+const YourLab = React.lazy(() => import('./components/YourLab'));
+const FeedView = React.lazy(() => import('./components/FeedView'));
+const ExerciseDetailView = React.lazy(() => import('./components/ExerciseDetailView').then(module => ({ default: module.ExerciseDetailView })));
+const MuscleGroupDetailView = React.lazy(() => import('./components/MuscleGroupDetailView'));
+const HallOfFameView = React.lazy(() => import('./components/HallOfFameView'));
+const BodyPartDetailView = React.lazy(() => import('./components/BodyPartDetailView'));
+const MuscleCategoryView = React.lazy(() => import('./components/MuscleCategoryView'));
+const ChainDetailView = React.lazy(() => import('./components/ChainDetailView'));
+const BodyLabView = React.lazy(() => import('./components/BodyLabView'));
+const TrainingPurposeView = React.lazy(() => import('./components/TrainingPurposeView'));
+const ExerciseDatabaseView = React.lazy(() => import('./components/ExerciseDatabaseView'));
+const TasksView = React.lazy(() => import('./components/TasksView'));
+const SessionDetailView = React.lazy(() => import('./components/SessionDetailView'));
+const SmartMealPlannerView = React.lazy(() => import('./components/SmartMealPlannerView'));
 const MobilityLabView = React.lazy(() => import('./components/MobilityLabView'));
 
 
@@ -631,7 +627,7 @@ export const App: React.FC = () => {
             case 'body-lab':
                 return <BodyLabView />;
             case 'mobility-lab':
-                return <Suspense fallback={<div className="text-center pt-12">Cargando...</div>}><MobilityLabView /></Suspense>;
+                return <MobilityLabView />;
             case 'training-purpose':
                 return <TrainingPurposeView />;
             case 'exercise-database':
@@ -716,7 +712,13 @@ export const App: React.FC = () => {
                         <div className="text-xl font-bold">Cargando...</div>
                     </div>
                 ) : (
-                    renderView()
+                    <Suspense fallback={
+                        <div className="flex justify-center items-center h-full">
+                            <div className="text-xl font-bold">Cargando...</div>
+                        </div>
+                    }>
+                        {renderView()}
+                    </Suspense>
                 )}
             </main>
             
@@ -788,16 +790,18 @@ export const App: React.FC = () => {
                              <button onClick={() => setIsWorkoutEditorOpen(false)} className="p-2 text-slate-300"><XIcon /></button>
                         </header>
                         <div className="flex-grow overflow-y-auto px-4 pb-20">
-                            <SessionEditor
-                                onSave={handleSaveModifiedWorkout}
-                                onCancel={() => setIsWorkoutEditorOpen(false)}
-                                existingSessionInfo={editingWorkoutSessionInfo}
-                                isOnline={isOnline}
-                                settings={settings}
-                                saveTrigger={modifyWorkoutTrigger}
-                                addExerciseTrigger={addExerciseTriggerInModal}
-                                exerciseList={exerciseList}
-                             />
+                            <Suspense fallback={<div>Cargando editor...</div>}>
+                                <SessionEditor
+                                    onSave={handleSaveModifiedWorkout}
+                                    onCancel={() => setIsWorkoutEditorOpen(false)}
+                                    existingSessionInfo={editingWorkoutSessionInfo}
+                                    isOnline={isOnline}
+                                    settings={settings}
+                                    saveTrigger={modifyWorkoutTrigger}
+                                    addExerciseTrigger={addExerciseTriggerInModal}
+                                    exerciseList={exerciseList}
+                                 />
+                            </Suspense>
                         </div>
                          <footer className="absolute bottom-0 left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-sm border-t border-slate-700/50 flex gap-2">
                              <Button onClick={() => setAddExerciseTriggerInModal(c => c + 1)} variant="secondary" className="flex-1">

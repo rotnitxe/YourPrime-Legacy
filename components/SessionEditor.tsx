@@ -707,7 +707,8 @@ const SessionEditor: React.FC<SessionEditorProps> = ({ onSave, onCancel, existin
   
       initializeEditor();
     }
-  }, [existingSessionInfo?.programId, existingSessionInfo?.weekId, existingSessionInfo?.sessionId, setIsDirty]);
+// FIX: Changed dependency from `existingSessionInfo?.sessionId` to `existingSessionInfo?.session.id` because `sessionId` does not exist on the prop.
+  }, [existingSessionInfo?.programId, existingSessionInfo?.weekId, existingSessionInfo?.session.id, setIsDirty]);
 
     const handleSessionInfoChange = (field: keyof Omit<Session, 'id' | 'exercises' | 'warmup' | 'background' | 'sessionB' | 'sessionC' | 'sessionD' | 'nameA' | 'lastScore' | 'parts'>, value: any) => {
         setSession(prev => ({ ...prev, [field]: value }));

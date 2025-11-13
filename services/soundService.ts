@@ -7,13 +7,13 @@ let audioContext: AudioContext | null = null;
 const audioBuffers: { [key: string]: AudioBuffer } = {};
 
 const SOUND_FILES: { [key: string]: string } = {
-  'rest-timer-sound': 'https://actions.google.com/sounds/v1/emergency/beeper_confirm.ogg', // Short, non-intrusive beep
-  'set-logged-sound': 'https://actions.google.com/sounds/v1/switches/switch_toggle_on.ogg',
-  'ui-click-sound': 'https://actions.google.com/sounds/v1/ui/ui_tap_forward.ogg',
-  'tab-switch-sound': 'https://actions.google.com/sounds/v1/ui/ui_tap_reverse.ogg',
-  'new-pr-sound': 'https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg',
-  'rep-surplus-sound': 'https://actions.google.com/sounds/v1/emergency/beeper_confirm.ogg',
-  'session-complete-sound': 'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg',
+  'rest-timer-sound': 'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/beep.mp3',
+  'set-logged-sound': 'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/toggle.mp3',
+  'ui-click-sound': 'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/click.mp3',
+  'tab-switch-sound': 'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/switch.mp3',
+  'new-pr-sound': 'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/tada.mp3',
+  'rep-surplus-sound': 'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/pop.mp3',
+  'session-complete-sound': 'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/success.mp3',
 };
 
 const initAudioContext = () => {

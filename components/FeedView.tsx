@@ -79,7 +79,7 @@ const CommunityHighlights: React.FC = () => {
 
     useEffect(() => {
         const fetchHighlights = async () => {
-            if (isOnline) {
+            if (isOnline && settings.apiKeys?.gemini) {
                 try {
                     const result = await getCommunityHighlights(settings);
                     setHighlights(result.highlights);

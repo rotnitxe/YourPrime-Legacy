@@ -68,6 +68,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
     const [editingSessionInfo, setEditingSessionInfo] = useState<{ programId: string; macroIndex: number; mesoIndex: number; weekId: string; sessionId?: string; } | null>(null);
     const [loggingSessionInfo, setLoggingSessionInfo] = useState<{ programId: string; sessionId: string } | null>(null);
+    // FIX: Add missing state for viewingSessionInfo.
+    const [viewingSessionInfo, setViewingSessionInfo] = useState<{ programId: string; sessionId: string; } | null>(null);
     const [activeSession, setActiveSession] = useState<Session | null>(null); // For live workout only
     const [viewingExerciseId, setViewingExerciseId] = useState<string | null>(null);
     const [viewingMuscleGroupId, setViewingMuscleGroupId] = useState<string | null>(null);
@@ -153,6 +155,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveProgramId(null); setEditingProgramId(null); setEditingSessionInfo(null);
         setLoggingSessionInfo(null); setViewingExerciseId(null); setViewingMuscleGroupId(null);
         setViewingBodyPartId(null); setViewingChainId(null); setViewingMuscleCategoryName(null);
+        // FIX: Clear viewingSessionInfo on navigation.
+        setViewingSessionInfo(null);
 
         if (data) {
             switch(newView) {
@@ -165,6 +169,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 case 'body-part-detail': setViewingBodyPartId(data.bodyPartId); break;
                 case 'chain-detail': setViewingChainId(data.chainId); break;
                 case 'muscle-category': setViewingMuscleCategoryName(data.categoryName); break;
+                // FIX: Set viewingSessionInfo when navigating to session-detail.
+                case 'session-detail': setViewingSessionInfo(data); break;
             }
         }
         setView(newView);
@@ -181,6 +187,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveProgramId(null); setEditingProgramId(null); setEditingSessionInfo(null);
         setLoggingSessionInfo(null); setViewingExerciseId(null); setViewingMuscleGroupId(null);
         setViewingBodyPartId(null); setViewingChainId(null); setViewingMuscleCategoryName(null);
+        // FIX: Clear viewingSessionInfo on back navigation.
+        setViewingSessionInfo(null);
 
         // Restore the specific context for the view we are returning to
         if (previousState.data) {
@@ -194,6 +202,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 case 'body-part-detail': setViewingBodyPartId(previousState.data.bodyPartId); break;
                 case 'chain-detail': setViewingChainId(previousState.data.chainId); break;
                 case 'muscle-category': setViewingMuscleCategoryName(previousState.data.categoryName); break;
+                // FIX: Restore viewingSessionInfo when navigating back.
+                case 'session-detail': setViewingSessionInfo(previousState.data); break;
             }
         }
         
@@ -627,7 +637,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         view, historyStack, programs, history, skippedLogs, settings, bodyProgress, nutritionLogs, pantryItems, tasks,
         exercisePlaylists, muscleGroupData, muscleHierarchy, exerciseList, unlockedAchievements,
         isOnline, isAppLoading, installPromptEvent, drive, toasts, activeProgramId, editingProgramId,
-        editingSessionInfo, activeSession, loggingSessionInfo, viewingExerciseId, viewingMuscleGroupId,
+        editingSessionInfo, activeSession, loggingSessionInfo, viewingSessionInfo, viewingExerciseId, viewingMuscleGroupId,
         viewingBodyPartId, viewingChainId, viewingMuscleCategoryName, exerciseToAddId, ongoingWorkout,
         isFinishModalOpen, isTimeSaverModalOpen, isTimersModalOpen, isReadinessModalOpen, isAddToPlaylistSheetOpen,
         isCustomExerciseEditorOpen, editingCustomExerciseData, pendingWorkoutForReadinessCheck,
@@ -642,7 +652,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         view, historyStack, programs, history, skippedLogs, settings, bodyProgress, nutritionLogs, pantryItems, tasks, exercisePlaylists,
         muscleGroupData, muscleHierarchy, exerciseList, unlockedAchievements, isOnline, isAppLoading, installPromptEvent,
         drive, toasts, activeProgramId, editingProgramId, editingSessionInfo, activeSession, loggingSessionInfo,
-        viewingExerciseId, viewingMuscleGroupId, viewingBodyPartId, viewingChainId, viewingMuscleCategoryName,
+        // FIX: Add missing viewingSessionInfo to dependency array.
+        viewingSessionInfo, viewingExerciseId, viewingMuscleGroupId, viewingBodyPartId, viewingChainId, viewingMuscleCategoryName,
         exerciseToAddId, ongoingWorkout, isFinishModalOpen, isTimeSaverModalOpen, isTimersModalOpen, isReadinessModalOpen,
         isAddToPlaylistSheetOpen, isCustomExerciseEditorOpen, editingCustomExerciseData, pendingWorkoutForReadinessCheck,
         isWorkoutEditorOpen, editingWorkoutSessionInfo, saveSessionTrigger, addExerciseTrigger, saveProgramTrigger,

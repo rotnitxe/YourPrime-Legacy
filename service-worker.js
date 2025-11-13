@@ -13,14 +13,13 @@ const urlsToCache = [
   'https://accounts.google.com/gsi/client',
 
   // Audio files
-  'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg',
-  'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg',
-  'https://actions.google.com/sounds/v1/impacts/crash.ogg',
-  'https://actions.google.com/sounds/v1/emergency/beeper_confirm.ogg',
-  'https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg',
-  'https://actions.google.com/sounds/v1/switches/switch_toggle_on.ogg',
-  'https://actions.google.com/sounds/v1/ui/ui_tap_forward.ogg',
-  'https://actions.google.com/sounds/v1/ui/ui_tap_reverse.ogg'
+  'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/beep.mp3',
+  'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/toggle.mp3',
+  'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/click.mp3',
+  'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/switch.mp3',
+  'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/tada.mp3',
+  'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/pop.mp3',
+  'https://cdn.jsdelivr.net/gh/Pixel-Av/public-sound-effects@main/sounds/success.mp3'
 ];
 
 self.addEventListener('install', event => {

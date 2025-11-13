@@ -1,4 +1,3 @@
-
 // components/WorkoutSession.tsx
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Session, Program, Settings, WorkoutLog, CompletedExercise, CompletedSet, Exercise, ExerciseSet, SessionBackground, OngoingWorkoutState, ExerciseMuscleInfo, BrandEquivalency, OngoingSetData } from '../types';
@@ -324,7 +323,7 @@ const SetDetails: React.FC<{
     onToggleChangeOfPlans: () => void;
     isChangeOfPlans: boolean;
     loggedSide: 'left' | null;
-}> = ({ exercise, exerciseInfo, set, isComplete, settings, onLogSet, inputs, onInputChange, dynamicWeights, onToggleChangeOfPlans, isChangeOfPlans, loggedSide }) => {
+}> = React.memo(({ exercise, exerciseInfo, set, isComplete, settings, onLogSet, inputs, onInputChange, dynamicWeights, onToggleChangeOfPlans, isChangeOfPlans, loggedSide }) => {
     
     const plateCombination = useMemo(() => {
         const weight = parseFloat(inputs.left.weight);
@@ -494,7 +493,7 @@ const SetDetails: React.FC<{
             )}
         </div>
     );
-};
+});
 
 export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     session,
@@ -787,7 +786,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         if (exercise.restTime > 0) handleStartRest(exercise.restTime, `Descanso para ${exercise.name}`);
     }, [activeExerciseId, activeSetId, exercisesForMode, selectedBrands, changeOfPlansSets, addToast, onUpdateExercise1RM, history, handleStartRest, settings, exerciseList]);
 
-    const handleSetInputChange = (setId: string, side: 'left' | 'right', field: keyof SetInputState, value: string | boolean) => {
+    const handleSetInputChange = useCallback((setId: string, side: 'left' | 'right', field: keyof SetInputState, value: string | boolean) => {
         setUnilateralSetInputs(prev => {
             const existingSetInput = prev[setId] || {
                 left: { reps: '', weight: '', rpe: '', rir: '', isFailure: false, duration: '', notes: '' },
@@ -798,9 +797,9 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
                 [setId]: { ...existingSetInput, [side]: { ...existingSetInput[side], [field]: value } }
             };
         });
-    };
+    }, []);
     
-    const handleToggleChangeOfPlans = (setId: string) => {
+    const handleToggleChangeOfPlans = useCallback((setId: string) => {
         setChangeOfPlansSets(prev => {
             const newSet = new Set(prev);
             if (newSet.has(setId)) newSet.delete(setId);
@@ -808,7 +807,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
             return newSet;
         });
         hapticImpact(ImpactStyle.Light);
-    };
+    }, []);
 
     const handleSelectBrand = (exerciseId: string, brand: string) => {
         setSelectedBrands(prev => {

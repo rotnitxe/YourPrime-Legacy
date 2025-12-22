@@ -1,17 +1,13 @@
+
 // App.tsx
 import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { useAppState, useAppDispatch } from './contexts/AppContext';
-// FIX: Imported the 'Program' and 'WorkoutLog' types to resolve a 'Cannot find name' error.
-import { View, Settings, Session, ExerciseMuscleInfo, OngoingWorkoutState, Program, TabBarActions, WorkoutLog, Macrocycle, Mesocycle, ProgramWeek } from './types';
-import useAchievements from './hooks/useAchievements';
+import { View, Session, WorkoutLog, Program, TabBarActions } from './types';
 import { pSBC } from './utils/colorUtils';
 import useLocalStorage from './hooks/useLocalStorage';
 
-
 // Import UI Components
-import Sidebar from './components/Sidebar';
 import TabBar from './components/TabBar';
-import SubTabBar from './components/SubTabBar';
 import AddBodyLogModal from './components/AddBodyLogModal';
 import AddNutritionLogModal from './components/AddNutritionLogModal';
 import CoachChatModal from './components/CoachChatModal';
@@ -24,17 +20,12 @@ import ReadinessCheckModal from './components/ReadinessCheckModal';
 import AddToPlaylistSheet from './components/AddToPlaylistSheet';
 import AddMeasurementsModal from './components/AddMeasurementsModal';
 import StartWorkoutModal from './components/StartWorkoutModal';
-
-
-// Icons for header
-// FIX: Import SaveIcon to fix missing member error.
-import { ArrowLeftIcon, PlayIcon, PauseIcon, XIcon, SaveIcon, PlusIcon } from './components/icons';
 import CreatePostModal from './components/CreatePostModal';
 import EditPostModal from './components/EditPostModal';
-// FIX: Changed to a named import to resolve a module loading issue.
 import { FeedCustomizationSheet } from './components/FeedCustomizationSheet';
 import Button from './components/ui/Button';
 import MuscleListEditorModal from './components/MuscleListEditorModal';
+import { SaveIcon, PlusIcon, XIcon } from './components/icons';
 
 // --- Lazy Imports for Performance ---
 const Home = React.lazy(() => import('./components/Home'));
@@ -63,68 +54,13 @@ const TasksView = React.lazy(() => import('./components/TasksView'));
 const SessionDetailView = React.lazy(() => import('./components/SessionDetailView'));
 const SmartMealPlannerView = React.lazy(() => import('./components/SmartMealPlannerView'));
 const MobilityLabView = React.lazy(() => import('./components/MobilityLabView'));
-
-
-const Header: React.FC<{
-    isTopLevelView: boolean;
-    settings: Settings;
-    view: View;
-    activeSession: Session | null;
-    isOnline: boolean;
-    onMenuClick: () => void;
-    onBackClick: () => void;
-}> = React.memo(({ isTopLevelView, settings, view, activeSession, isOnline, onMenuClick, onBackClick }) => {
-    const headerStyle: React.CSSProperties = {
-        fontSize: `${settings.headerFontSize}rem`, fontWeight: settings.headerFontWeight,
-        '--header-glow-intensity': `${settings.headerGlowIntensity}px`,
-    } as React.CSSProperties;
-    
-    const isSpecialViewWithCustomHeader = ['your-lab', 'mobility-lab', 'exercise-database', 'smart-meal-planner'].includes(view);
-
-    if (isSpecialViewWithCustomHeader) {
-        return null;
-    }
-
-    const bgStyle: React.CSSProperties = {
-        backgroundColor: settings.headerCustomBgEnabled ? settings.headerCustomBgColor : 'var(--header-bg-color-fallback)',
-        backdropFilter: `blur(${settings.headerBgBlur}px)`,
-        borderBottom: `1px solid var(--header-border-color-fallback)`
-    };
-    
-    const title = settings.headerText;
-    const isLongTitle = title && title.length > 15;
-
-    return (
-        <header style={bgStyle} className="app-header flex items-center justify-between px-4 flex-shrink-0">
-            <div className="flex items-center gap-2">
-                {isTopLevelView ? (
-                     <button onClick={onMenuClick} className="p-2 text-slate-300">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                     </button>
-                ) : (
-                    <button onClick={onBackClick} className="p-2 text-slate-300">
-                        <ArrowLeftIcon />
-                    </button>
-                )}
-                 {!isOnline && (
-                    <div className="text-xs font-semibold text-yellow-400 bg-yellow-900/50 px-2 py-1 rounded-full animate-pulse">Offline</div>
-                )}
-            </div>
-             <div className="session-header-title overflow-hidden">
-                <h1 style={headerStyle} className={`main-logo header-style-${settings.headerStyle} ${isLongTitle ? 'header-marquee' : ''}`}>{title}</h1>
-            </div>
-            <div className="w-8" />
-        </header>
-    );
-});
+const ProgramsView = React.lazy(() => import('./components/ProgramsView'));
 
 // Helper function to get HUE from a HEX color
 const hexToHue = (H: string | undefined): number => {
     if (!H) return 280;
-    // Convert hex to RGB first
     let r = 0, g = 0, b = 0;
     let hStr = H.startsWith('#') ? H.substring(1) : H;
-
     if (hStr.length === 3) {
         r = parseInt(hStr[0] + hStr[0], 16);
         g = parseInt(hStr[1] + hStr[1], 16);
@@ -136,8 +72,6 @@ const hexToHue = (H: string | undefined): number => {
     } else {
         return 280;
     }
-
-    // Then to HSL
     r /= 255; g /= 255; b /= 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     let h = 0;
@@ -198,7 +132,6 @@ export const App: React.FC = () => {
         editingCustomExerciseData,
         isMeasurementsModalOpen,
         isStartWorkoutModalOpen,
-        // FIX: Destructure missing properties to satisfy AppContextState type.
         isWorkoutEditorOpen,
         editingWorkoutSessionInfo,
         isMuscleListEditorOpen,
@@ -259,14 +192,12 @@ export const App: React.FC = () => {
         openCustomExerciseEditor,
         closeCustomExerciseEditor,
         handleUpdatePost,
-        // FIX: Destructure missing properties to satisfy AppContextDispatch type.
         handleModifyWorkout,
         handleSaveModifiedWorkout,
         setIsWorkoutEditorOpen,
         closeMuscleListEditor,
     } = dispatch;
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isCoachChatOpen, setIsCoachChatOpen] = useState(false);
     const [isBodyLogModalOpen, setIsBodyLogModalOpen] = useState(false);
     const [isNutritionLogModalOpen, setIsNutritionLogModalOpen] = useState(false);
@@ -279,132 +210,30 @@ export const App: React.FC = () => {
     const [modifyWorkoutTrigger, setModifyWorkoutTrigger] = useState(0);
     const [addExerciseTriggerInModal, setAddExerciseTriggerInModal] = useState(0);
 
-
     const mainContentRef = useRef<HTMLElement>(null);
     const viewRef = useRef(view);
 
-    // Effect for Card Theme Color System (Old and New properties combined)
-    useEffect(() => {
-        const root = document.documentElement;
-        const body = document.body;
-        const color = settings.cardThemeColor || '#1A1D2A';
-        const opacity = settings.cardBgOpacity ?? 0.65;
-        const blur = settings.cardBgBlur ?? 40;
-
-        // Reset styles first
-        body.style.backgroundImage = '';
-        root.style.removeProperty('--card-bg-main');
-        root.style.removeProperty('--card-bg-light');
-        root.style.removeProperty('--card-nested-bg');
-        root.style.removeProperty('--card-border');
-
-        if (color.startsWith('linear-gradient')) {
-            root.style.setProperty('--card-bg-main', color);
-            root.style.setProperty('--card-bg-light', color);
-            root.style.setProperty('--card-nested-bg', 'rgba(10, 11, 17, 0.5)');
-            root.style.setProperty('--card-border', 'rgba(60, 64, 87, 0.2)');
-        } else if (color.startsWith('data:image/svg+xml')) {
-            body.style.backgroundImage = `url("${color}")`;
-        } else if (color.startsWith('#')) {
-            const toRgba = (rgbStr: string | null, alpha: number): string | null => {
-                if (!rgbStr) return null;
-                return rgbStr.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
-            };
-
-            const mainRgba = toRgba(pSBC(0, color), opacity);
-            const lightRgba = toRgba(pSBC(0.15, color), opacity + 0.1); // Make light version slightly more opaque
-            const nestedRgba = toRgba(pSBC(-0.6, color), opacity - 0.15);
-            const borderRgba = toRgba(pSBC(0.1, color), 0.2);
-
-            if (mainRgba) root.style.setProperty('--card-bg-main', mainRgba);
-            if (lightRgba) root.style.setProperty('--card-bg-light', lightRgba);
-            if (nestedRgba) root.style.setProperty('--card-nested-bg', nestedRgba);
-            if (borderRgba) root.style.setProperty('--card-border', borderRgba);
-        }
-        
-        // Apply blur
-        root.style.setProperty('--card-backdrop-filter', `blur(${blur}px)`);
-
-    }, [settings.cardThemeColor, settings.cardBgOpacity, settings.cardBgBlur]);
-    
-    // Effect for New Advanced Theme System
+    // Apply Global Theme Settings (CSS Variables)
     useEffect(() => {
         const root = document.documentElement;
         const body = document.body;
         const { 
-            themePrimaryColor, themeTextColor, themeBgGradientStart, themeBgGradientEnd, 
-            themeFontFamily, themeCardStyle, themeCardBorderRadius 
+            themePrimaryColor, themeTextColor, themeFontFamily, themeCardBorderRadius 
         } = settings;
 
-        // Primary Color (via HUE)
         root.style.setProperty('--primary-hue', String(hexToHue(themePrimaryColor)));
-        
-        // Text Color
-        if (themeTextColor) root.style.setProperty('--text-color', themeTextColor); else root.style.removeProperty('--text-color');
+        if (themeTextColor) root.style.setProperty('--text-color', themeTextColor); 
+        else root.style.removeProperty('--text-color');
 
-        // Background
-        if (themeBgGradientStart && themeBgGradientEnd) {
-            root.style.setProperty('--bg-gradient', `linear-gradient(180deg, ${themeBgGradientStart}, ${themeBgGradientEnd})`);
-            root.style.setProperty('--bg-color', themeBgGradientEnd);
-        } else {
-            root.style.removeProperty('--bg-gradient');
-            root.style.removeProperty('--bg-color');
-        }
-        
-        // Font
         if (themeFontFamily && themeFontFamily !== 'System') body.style.fontFamily = `'${themeFontFamily}', var(--font-family-system)`;
         else body.style.fontFamily = `var(--font-family-system)`;
 
-        // Card Border Radius
-        if (themeCardBorderRadius) root.style.setProperty('--theme-card-border-radius', `${themeCardBorderRadius}rem`); else root.style.removeProperty('--theme-card-border-radius');
+        if (themeCardBorderRadius) root.style.setProperty('--theme-card-border-radius', `${themeCardBorderRadius}rem`); 
+        else root.style.removeProperty('--theme-card-border-radius');
         
-        // Card Style
-        if (themeCardStyle === 'solid') {
-            root.style.setProperty('--card-bg-main', 'rgba(28, 28, 40, 0.95)');
-            root.style.setProperty('--card-bg-light', 'rgba(40, 40, 55, 1)');
-            root.style.setProperty('--card-backdrop-filter', 'none');
-        } else if (themeCardStyle === 'outline') {
-            root.style.setProperty('--card-bg-main', 'transparent');
-            root.style.setProperty('--card-bg-light', 'rgba(255, 255, 255, 0.05)');
-            root.style.setProperty('--card-backdrop-filter', 'none');
-        } else { // glass (default)
-            // This is now handled by the other useEffect
-        }
-    }, [settings.themePrimaryColor, settings.themeTextColor, settings.themeBgGradientStart, settings.themeBgGradientEnd, settings.themeFontFamily, settings.themeCardStyle, settings.themeCardBorderRadius]);
+    }, [settings]);
 
-    // Parallax Effect for user-defined backgrounds
-    useEffect(() => {
-        const mainEl = mainContentRef.current;
-        const isParallaxEnabled = settings.enableParallax && settings.appBackground?.type === 'image';
-
-        if (!mainEl || !isParallaxEnabled) return;
-
-        const bgElement1 = document.getElementById('app-background-1');
-        const bgElement2 = document.getElementById('app-background-2');
-
-        const handleScroll = () => {
-            const scrollTop = mainEl.scrollTop;
-            const parallaxOffset = scrollTop * 0.2;
-            
-            if (bgElement1 && bgElement1.classList.contains('visible')) {
-                bgElement1.style.transform = `scale(1.1) translateY(${parallaxOffset}px)`;
-            }
-            if (bgElement2 && bgElement2.classList.contains('visible')) {
-                bgElement2.style.transform = `scale(1.1) translateY(${parallaxOffset}px)`;
-            }
-        };
-
-        mainEl.addEventListener('scroll', handleScroll, { passive: true });
-        
-        // Reset transform on cleanup
-        return () => {
-            mainEl.removeEventListener('scroll', handleScroll);
-            if (bgElement1) bgElement1.style.transform = 'scale(1.1)';
-            if (bgElement2) bgElement2.style.transform = 'scale(1.1)';
-        };
-    }, [settings.enableParallax, settings.appBackground]);
-
-
+    // Save/Restore Scroll Position
     const setScrollPosition = useCallback((key: string, position: number) => {
         setScrollPositions(prev => ({ ...prev, [key]: position }));
     }, [setScrollPositions]);
@@ -418,33 +247,26 @@ export const App: React.FC = () => {
         if (!mainEl) return;
         
         const savedPosition = scrollPositions[view] || 0;
-        
+        // Small delay to ensure content is rendered
         const timer = setTimeout(() => {
-            if (mainEl) {
-                mainEl.scrollTop = savedPosition;
-            }
+            if (mainEl) mainEl.scrollTop = savedPosition;
         }, 10);
         
         return () => {
             clearTimeout(timer);
-            if (mainEl) {
-                setScrollPosition(viewRef.current, mainEl.scrollTop);
-            }
+            if (mainEl) setScrollPosition(viewRef.current, mainEl.scrollTop);
         };
     }, [view, scrollPositions, setScrollPosition]);
 
+    // Prevent body scroll when modals are open
     useEffect(() => {
         const anyModalOpen = isBodyLogModalOpen || isNutritionLogModalOpen || isCoachChatOpen || isFinishModalOpen || isTimeSaverModalOpen || isTimersModalOpen || isLogFinishModalOpen || isCustomExerciseEditorOpen || isVideoAnalysisModalOpen || isReadinessModalOpen || state.isAddToPlaylistSheetOpen || isCreatePostModalOpen || isEditPostModalOpen || isFeedCustomizationSheetOpen || isWorkoutEditorOpen || isMuscleListEditorOpen || isMeasurementsModalOpen || isStartWorkoutModalOpen;
-        if (anyModalOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
+        document.body.style.overflow = anyModalOpen ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
     }, [isBodyLogModalOpen, isNutritionLogModalOpen, isCoachChatOpen, isFinishModalOpen, isTimeSaverModalOpen, isTimersModalOpen, isLogFinishModalOpen, isCustomExerciseEditorOpen, isVideoAnalysisModalOpen, isReadinessModalOpen, state.isAddToPlaylistSheetOpen, isCreatePostModalOpen, isEditPostModalOpen, isFeedCustomizationSheetOpen, isWorkoutEditorOpen, isMuscleListEditorOpen, isMeasurementsModalOpen, isStartWorkoutModalOpen]);
     
+    // Cleanup ongoing workout if program deleted
     useEffect(() => {
-        // Robust check for orphaned ongoing workouts
         if (!isAppLoading && ongoingWorkout && programs.length > 0 && view === 'home') {
             const program = programs.find(p => p.id === ongoingWorkout.programId);
             if (!program) {
@@ -452,48 +274,11 @@ export const App: React.FC = () => {
                 setOngoingWorkout(null);
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAppLoading, ongoingWorkout, programs, view]);
-
-
-    const isTopLevelView = useMemo(() => ['home', 'feed', 'your-lab', 'progress', 'tasks'].includes(view), [view]);
-    const onMenuClick = useCallback(() => setIsSidebarOpen(true), []);
+    }, [isAppLoading, ongoingWorkout, programs, view, setOngoingWorkout]);
 
     const viewingExercise = useMemo(() => viewingExerciseId ? exerciseList.find(e => e.id === viewingExerciseId) : null, [exerciseList, viewingExerciseId]);
 
-    const onFinishWorkoutPress = useCallback(() => setIsFinishModalOpen(true), [setIsFinishModalOpen]);
-    const onTimeSaverPress = useCallback(() => setIsTimeSaverModalOpen(true), [setIsTimeSaverModalOpen]);
-    const onSaveSessionPress = useCallback(() => setSaveSessionTrigger(c => c + 1), [setSaveSessionTrigger]);
-    const onAddExercisePress = useCallback(() => setAddExerciseTrigger(c => c + 1), [setAddExerciseTrigger]);
-    const onSaveProgramPress = useCallback(() => setSaveProgramTrigger(c => c + 1), [setSaveProgramTrigger]);
-    const onSaveLoggedWorkoutPress = useCallback(() => setIsLogFinishModalOpen(true), []);
-    const onTimersPress = useCallback(() => setIsTimersModalOpen(true), [setIsTimersModalOpen]);
-    const onModifyPress = useCallback(() => handleModifyWorkout(), [handleModifyWorkout]);
-    const onAddCustomExercisePress = useCallback(() => openCustomExerciseEditor(), [openCustomExerciseEditor]);
-    const onCoachPress = useCallback(() => setIsCoachChatOpen(true), []);
-    const onPauseWorkoutPress = useCallback(() => handlePauseWorkout(), [handlePauseWorkout]);
-    
-    const onEditExercisePress = useCallback(() => {
-        if (viewingExercise) {
-            openCustomExerciseEditor({ exercise: viewingExercise });
-        }
-    }, [viewingExercise, openCustomExerciseEditor]);
-
-    const onAnalyzeTechniquePress = useCallback(() => setIsVideoAnalysisModalOpen(true), []);
-    const onAddToPlaylistPress = useCallback(() => {
-        if (viewingExerciseId) {
-            setExerciseToAddId(viewingExerciseId);
-            setIsAddToPlaylistSheetOpen(true);
-        }
-    }, [viewingExerciseId, setExerciseToAddId, setIsAddToPlaylistSheetOpen]);
-
-    const onAddToSessionPress = useCallback(() => {
-        addToast("Función no implementada todavía.", "suggestion");
-    }, [addToast]);
-    
-    const onCreatePostPress = useCallback(() => setIsCreatePostModalOpen(true), []);
-    const onCustomizeFeedPress = useCallback(() => setIsFeedCustomizationSheetOpen(true), []);
-
+    // Navigation Handlers
     const handleHomeNavigation = (view: View, program?: Program) => {
         if (view === 'program-detail' && program) {
             navigateTo(view, { programId: program.id });
@@ -502,57 +287,15 @@ export const App: React.FC = () => {
         }
     };
 
-    const tabBarActions: TabBarActions = useMemo(() => ({
-        onLogPress: handleLogPress,
-        onFinishWorkoutPress,
-        onTimeSaverPress,
-        onModifyPress,
-        onTimersPress,
-        onCancelWorkoutPress: onCancelWorkout,
-        onPauseWorkoutPress,
-        onSaveSessionPress,
-        onAddExercisePress,
-        onCancelEditPress: handleBack,
-        onSaveProgramPress,
-        onSaveLoggedWorkoutPress,
-        onAddCustomExercisePress,
-        onCoachPress,
-        onEditExercisePress,
-        onAnalyzeTechniquePress,
-        onAddToPlaylistPress,
-        onAddToSessionPress,
-        onCreatePostPress,
-        onCustomizeFeedPress,
-    }), [
-        handleLogPress, onFinishWorkoutPress, onTimeSaverPress, onModifyPress, onTimersPress, onCancelWorkout,
-        onPauseWorkoutPress, onSaveSessionPress, onAddExercisePress, handleBack, onSaveProgramPress, onSaveLoggedWorkoutPress,
-        onAddCustomExercisePress, onCoachPress, onEditExercisePress, onAnalyzeTechniquePress, onAddToPlaylistPress, onAddToSessionPress,
-        onCreatePostPress, onCustomizeFeedPress
-    ]);
-
-    const viewsWithSubTabBar = useMemo(() => ['program-editor', 'your-lab', 'exercise-detail', 'feed'], []);
-    
-    const subTabBarContext = useMemo(() => {
-        // We need to type guard the view against the string literal types
-        if ((viewsWithSubTabBar as readonly string[]).includes(view)) {
-            return view as 'program-editor' | 'your-lab' | 'exercise-detail' | 'feed';
-        }
-        return null;
-    }, [view, viewsWithSubTabBar]);
-
-    const tabBarContext = useMemo(() => {
-        if (view === 'workout') return 'workout';
-        if (view === 'session-editor') return 'session-editor';
-        if (view === 'log-workout') return 'log-workout';
-        return 'default';
-    }, [view]);
-
+    // Render Logic
     const renderView = useCallback(() => {
         switch (view) {
             case 'home':
                 return <Home onNavigate={handleHomeNavigation} onResumeWorkout={handleResumeWorkout} />;
             case 'tasks':
                 return <TasksView />;
+            case 'programs':
+                return <ProgramsView programs={programs} onSelectProgram={(p) => navigateTo('program-detail', { programId: p.id })} onCreateProgram={handleCreateProgram} isOnline={isOnline} />;
             case 'program-detail':
                 const program = programs.find(p => p.id === activeProgramId);
                 return program && <ProgramDetail program={program} history={history} settings={settings} isOnline={isOnline} onStartWorkout={handleStartWorkout} onLogWorkout={handleLogWorkout} onEditProgram={handleEditProgram} onEditSession={handleEditSession} onDeleteSession={handleDeleteSession} onAddSession={handleAddSession} onDeleteProgram={handleDeleteProgram} onUpdateProgram={handleUpdateProgram} />;
@@ -598,7 +341,6 @@ export const App: React.FC = () => {
                         exerciseList={exerciseList} 
                     />;
                 }
-                console.log("Workout view rendering null", {sessionToRender, programToRender, activeSession, ongoingWorkout})
                 return <div className="text-center text-slate-400 pt-12">Cargando sesión...</div>;
             }
              case 'session-detail':
@@ -642,7 +384,6 @@ export const App: React.FC = () => {
             case 'muscle-group-detail':
                 return viewingMuscleGroupId && <MuscleGroupDetailView muscleGroupId={viewingMuscleGroupId} isOnline={isOnline} />;
             case 'body-part-detail':
-                // FIX: Use `viewingBodyPartId` which is available in component scope, instead of the undefined `bodyPartId`.
                 return viewingBodyPartId && <BodyPartDetailView bodyPartId={viewingBodyPartId as any} />;
             case 'muscle-category':
                 return viewingMuscleCategoryName && <MuscleCategoryView categoryName={viewingMuscleCategoryName} />;
@@ -653,87 +394,41 @@ export const App: React.FC = () => {
             default:
                 return <Home onNavigate={handleHomeNavigation} onResumeWorkout={handleResumeWorkout} />;
         }
-    // FIX: Corrected typo from `saveTrigger` to `saveSessionTrigger` in dependency array.
-    }, [view, programs, history, skippedLogs, settings, bodyProgress, nutritionLogs, isOnline, handleHomeNavigation, handleResumeWorkout, activeProgramId, handleStartWorkout, handleLogWorkout, handleEditProgram, handleEditSession, handleDeleteSession, handleAddSession, handleDeleteProgram, handleUpdateProgram, handleSaveProgram, handleBack, editingProgramId, saveProgramTrigger, editingSessionInfo, handleSaveSession, saveSessionTrigger, addExerciseTrigger, exerciseList, activeSession, handleFinishWorkout, onCancelWorkout, handleUpdateExercise1RM, isFinishModalOpen, isTimeSaverModalOpen, isTimersModalOpen, handleUpdateExerciseInProgram, setSettings, navigateTo, setIsBodyLogModalOpen, setIsNutritionLogModalOpen, drive, installPromptEvent, setInstallPromptEvent, setPrograms, setHistory, setSkippedLogs, setBodyProgress, setNutritionLogs, unlockedAchievements, loggingSessionInfo, isLogFinishModalOpen, handleSaveLoggedWorkout, viewingExerciseId, viewingMuscleGroupId, viewingBodyPartId, viewingChainId, viewingMuscleCategoryName, ongoingWorkout, viewingSessionInfo]);
+    }, [view, programs, history, skippedLogs, settings, bodyProgress, nutritionLogs, isOnline, handleHomeNavigation, handleResumeWorkout, activeProgramId, handleStartWorkout, handleLogWorkout, handleEditProgram, handleEditSession, handleDeleteSession, handleAddSession, handleDeleteProgram, handleUpdateProgram, handleSaveProgram, handleBack, editingProgramId, saveProgramTrigger, editingSessionInfo, handleSaveSession, saveSessionTrigger, addExerciseTrigger, exerciseList, activeSession, handleFinishWorkout, onCancelWorkout, handleUpdateExercise1RM, isFinishModalOpen, isTimeSaverModalOpen, isTimersModalOpen, handleUpdateExerciseInProgram, setSettings, navigateTo, setIsBodyLogModalOpen, setIsNutritionLogModalOpen, drive, installPromptEvent, setInstallPromptEvent, setPrograms, setHistory, setSkippedLogs, setBodyProgress, setNutritionLogs, unlockedAchievements, loggingSessionInfo, isLogFinishModalOpen, handleSaveLoggedWorkout, viewingExerciseId, viewingMuscleGroupId, viewingBodyPartId, viewingChainId, viewingMuscleCategoryName, ongoingWorkout, viewingSessionInfo, handleCreateProgram]);
     
-    const isHeaderHidden = ['your-lab', 'mobility-lab', 'exercise-database', 'smart-meal-planner'].includes(view);
-    const mainContentPaddingTop = isHeaderHidden ? '' : 'pt-24';
-
-    const isContextualBar = tabBarContext !== 'default';
-    
-    const mainContentPaddingBottom = subTabBarContext || isContextualBar ? 'pb-36' : 'pb-28';
-    
-    const isSubTabBarActive = !!subTabBarContext;
-    const tabBarContainerHeight = isSubTabBarActive ? 'h-32' : 'h-24';
-    const liquidBackgroundStyle = isSubTabBarActive ? {
-        backgroundImage: `linear-gradient(to bottom, hsla(var(--primary-hue, 280), 100%, 70%, 0.2), hsla(var(--primary-hue, 280), 80%, 50%, 0.05) 50%, var(--card-bg-main) 100%)`
-    } : {};
-    
-    const feedStyles: React.CSSProperties = view === 'feed' ? {
-        '--card-bg-main': settings.feedSettings?.cardColor,
-        '--card-bg-light': settings.feedSettings?.cardColor ? pSBC(0.1, settings.feedSettings.cardColor, null, true) : undefined,
-    } as React.CSSProperties : {};
-    
-    const feedBackgroundClass = view === 'feed' ? settings.feedSettings?.background || '' : '';
-
-    const tabBarStyle: React.CSSProperties = useMemo(() => {
-        const color = settings.themeTabBarColor;
-        if (!color || !color.startsWith('#')) return {};
-        
-        const hexToRgba = (hex: string, alpha: number): string => {
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        };
-
-        return {
-            background: `linear-gradient(160deg, ${hexToRgba(color, 0.45)}, ${hexToRgba(color, 0.25)})`,
-            borderColor: hexToRgba(color, 0.35),
-        };
-    }, [settings.themeTabBarColor]);
-
+    // Main App Layout Structure V3
     return (
-        <div className={`app-container h-full flex flex-col ${feedBackgroundClass}`}>
+        <div className="relative min-h-screen w-full overflow-hidden text-white font-sans selection:bg-indigo-500/30">
+            {/* 1. Fondo Global Fijo */}
             <AppBackground />
-            <Header
-                isTopLevelView={isTopLevelView}
-                settings={settings}
-                view={view}
-                activeSession={activeSession}
-                isOnline={isOnline}
-                onMenuClick={onMenuClick}
-                onBackClick={handleBack}
-            />
-             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} navigate={(v) => { navigateTo(v); setIsSidebarOpen(false); }} />
-
-            <main ref={mainContentRef} className={`app-main-content flex-grow ${mainContentPaddingTop} ${mainContentPaddingBottom} px-4 overflow-y-auto`} style={{ viewTransitionName: 'root', ...feedStyles } as React.CSSProperties}>
-                {isAppLoading ? (
-                    <div className="flex justify-center items-center h-full">
-                        <div className="text-xl font-bold">Cargando...</div>
-                    </div>
-                ) : (
-                    <Suspense fallback={
-                        <div className="flex justify-center items-center h-full">
-                            <div className="text-xl font-bold">Cargando...</div>
+            
+            {/* 2. Contenido Scrolleable */}
+            <main 
+                ref={mainContentRef} 
+                className="h-screen w-full overflow-y-auto hide-scrollbar scroll-smooth pb-24"
+                style={{ viewTransitionName: 'root' }}
+            >
+                <div className="max-w-md mx-auto min-h-full p-4 relative z-10">
+                    {isAppLoading ? (
+                        <div className="flex justify-center items-center h-[80vh]">
+                            <div className="text-xl font-bold animate-pulse text-slate-400">Cargando...</div>
                         </div>
-                    }>
-                        {renderView()}
-                    </Suspense>
-                )}
+                    ) : (
+                        <Suspense fallback={
+                            <div className="flex justify-center items-center h-[80vh]">
+                                <div className="text-xl font-bold animate-pulse text-slate-400">Cargando...</div>
+                            </div>
+                        }>
+                            {renderView()}
+                        </Suspense>
+                    )}
+                </div>
             </main>
             
-            <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none px-2 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                <div 
-                    style={{...liquidBackgroundStyle, ...tabBarStyle}}
-                    className={`relative w-full max-w-lg mx-auto pointer-events-auto tab-bar-card-container rounded-3xl transition-all duration-300 ease-in-out ${tabBarContainerHeight}`}
-                >
-                    <SubTabBar context={subTabBarContext} actions={tabBarActions} isActive={isSubTabBarActive} />
-                    <TabBar activeView={view} navigate={navigateTo} context={tabBarContext} actions={tabBarActions} isSubTabBarActive={isSubTabBarActive} />
-                </div>
-            </div>
+            {/* 3. Navegación Flotante Fija */}
+            <TabBar />
 
-
+            {/* 4. Modales Globales */}
             {isCoachChatOpen && <CoachChatModal isOpen={isCoachChatOpen} onClose={() => setIsCoachChatOpen(false)} programs={programs} history={history} isOnline={isOnline} settings={settings} />}
             {isBodyLogModalOpen && <AddBodyLogModal isOpen={isBodyLogModalOpen} onClose={() => setIsBodyLogModalOpen(false)} onSave={handleSaveBodyLog} settings={settings} />}
             {isNutritionLogModalOpen && <AddNutritionLogModal isOpen={isNutritionLogModalOpen} onClose={() => setIsNutritionLogModalOpen(false)} onSave={handleSaveNutritionLog} isOnline={isOnline} settings={settings} />}
@@ -816,7 +511,7 @@ export const App: React.FC = () => {
                 </>
             )}
 
-            <div className="fixed top-4 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 z-[9999] space-y-2">
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 z-[9999] space-y-2 pointer-events-none">
                 {toasts.map(toast => (
                     <Toast key={toast.id} toast={toast} onDismiss={removeToast} />
                 ))}

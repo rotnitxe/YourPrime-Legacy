@@ -1,350 +1,118 @@
-import React, { useMemo, useState } from 'react';
-import { Program, Session, WorkoutLog, Settings, BodyProgressLog, NutritionLog, SkippedWorkoutLog, View, OngoingWorkoutState, BodyLabAnalysis, ProgramWeek } from '../types';
-import PerformanceScore from './PerformanceScore';
-import Card from './ui/Card';
+
+import React, { useEffect, useState } from 'react';
+import { useAppContext, useAppDispatch } from '../contexts/AppContext';
+import { View, Program } from '../types';
 import Button from './ui/Button';
-import { PlayIcon, FlameIcon, TrophyIcon, ClockIcon, BarChartIcon, BookOpenIcon, PlusIcon, ChevronRightIcon, PauseIcon, BrainIcon, SparklesIcon, TrendingUpIcon, XCircleIcon } from './icons';
-import { formatLargeNumber, getWeekId, calculateStreak } from '../utils/calculations';
-import OnThisDayCard from './OnThisDayCard';
-import RelativeStrengthCard from './RelativeStrengthCard';
-import { useAppState, useAppDispatch } from '../contexts/AppContext';
-import MuscleRecoveryWidget from './MuscleRecoveryWidget';
-import ErrorBoundary from './ui/ErrorBoundary';
-
-interface NextSessionInfo {
-    program: Program;
-    session: Session;
-    weekVariant?: ProgramWeek['variant'];
-}
-
-const ProgramList: React.FC<{ onNavigate: (view: View, program?: Program) => void }> = ({ onNavigate }) => {
-    const { programs } = useAppState();
-    
-    return (
-        <Card>
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2"><BookOpenIcon /> Mis Programas</h3>
-                <Button onClick={() => onNavigate('program-editor')} variant="secondary" className="!text-xs !py-1">
-                    <PlusIcon size={14}/> Nuevo
-                </Button>
-            </div>
-            {programs.length > 0 ? (
-                <div className="space-y-2">
-                    {programs.slice(0, 3).map(program => (
-                        <div key={program.id} onClick={() => onNavigate('program-detail', program)} className="glass-card-nested p-3 flex items-center justify-between cursor-pointer hover:bg-slate-800 transition-colors">
-                            <div>
-                                <p className="font-semibold text-slate-200">{program.name}</p>
-                                <p className="text-xs text-slate-400">{program.description}</p>
-                            </div>
-                            <ChevronRightIcon className="text-slate-500" />
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-4 text-slate-400">
-                    <p className="text-sm">Aún no tienes programas.</p>
-                    <Button onClick={() => onNavigate('program-editor')} className="mt-3">Crear mi primer programa</Button>
-                </div>
-            )}
-        </Card>
-    );
-};
-
-
-const WeeklySummary: React.FC = () => {
-    const { history, settings } = useAppState();
-    const summary = useMemo(() => {
-        const now = new Date();
-        const weekStart = new Date(getWeekId(now, settings.startWeekOn).split('-').join('/'));
-
-        const thisWeekLogs = history.filter(log => new Date(log.date) >= weekStart);
-
-        const totalSessions = thisWeekLogs.length;
-        const totalDuration = thisWeekLogs.reduce((acc, log) => acc + (log.duration || 0), 0);
-        const totalVolume = thisWeekLogs.reduce((acc, log) => {
-            return acc + log.completedExercises.reduce((exAcc, ex) => {
-                return exAcc + ex.sets.reduce((setAcc, set) => {
-                    return setAcc + (set.weight || 0) * (set.completedReps || set.completedDuration || 0);
-                }, 0);
-            }, 0);
-        }, 0);
-
-        return {
-            totalSessions,
-            totalDuration: Math.round(totalDuration / 60), 
-            totalVolume: totalVolume,
-        };
-    }, [history, settings.startWeekOn]);
-
-    const { streak } = useMemo(() => calculateStreak(history, settings), [history, settings]);
-
-    const streakColor = streak > 0 ? 'text-orange-400' : 'text-slate-400';
-    const streakPulse = streak > 0 ? 'animate-pulse' : '';
-
-    return (
-         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="stat-card">
-                <BarChartIcon size={24} className="icon"/>
-                <p className="value">{summary.totalSessions}</p>
-                <p className="label">Sesiones (Semana)</p>
-            </div>
-            <div className="stat-card">
-                <TrophyIcon size={24} className="icon"/>
-                <p className="value">{formatLargeNumber(summary.totalVolume)}</p>
-                <p className="label">Volumen ({settings.weightUnit})</p>
-            </div>
-            <div className="stat-card">
-                <ClockIcon size={24} className="icon"/>
-                <p className="value">{summary.totalDuration}</p>
-                <p className="label">Minutos</p>
-            </div>
-            <div className="stat-card">
-                <FlameIcon size={24} className={`icon transition-colors ${streakColor} ${streakPulse}`}/>
-                <p className={`value transition-colors ${streakColor}`}>{streak}</p>
-                <p className="label">Racha Semanal</p>
-            </div>
-        </div>
-    )
-};
-
-const ResumeWorkoutCard: React.FC<{ ongoingWorkout: OngoingWorkoutState, onResume: () => void }> = ({ ongoingWorkout, onResume }) => {
-    return (
-        <Card className="!bg-primary-gradient animate-pulse-border">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-center sm:text-left">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2"><PauseIcon /> Entrenamiento en Pausa</h3>
-                    <p className="text-white/80">{ongoingWorkout.session.name}</p>
-                </div>
-                <Button onClick={onResume} variant="secondary" className="!bg-white !text-primary-color w-full sm:w-auto">
-                    <PlayIcon size={16}/> Reanudar
-                </Button>
-            </div>
-        </Card>
-    );
-};
-
-const NextSessionCard: React.FC<{
-    sessionInfo: NextSessionInfo | null;
-    onStart: (session: Session, program: Program, weekVariant?: ProgramWeek['variant']) => void;
-    onSkip: (session: Session, program: Program, reason: SkippedWorkoutLog['reason'], notes?: string) => void;
-    onNavigate: (view: View, program?: Program) => void;
-}> = ({ sessionInfo, onStart, onSkip, onNavigate }) => {
-
-    const handleSkip = (reason: SkippedWorkoutLog['reason']) => {
-        if (!sessionInfo) return;
-        if (reason === 'other') {
-            const notes = prompt("Por favor, introduce una breve razón para saltar el entrenamiento:");
-            if (notes) {
-                onSkip(sessionInfo.session, sessionInfo.program, reason, notes);
-            }
-        } else {
-            onSkip(sessionInfo.session, sessionInfo.program, reason);
-        }
-    };
-
-    if (!sessionInfo) {
-        return (
-            <Card>
-                <h3 className="text-xl font-bold text-white mb-2">Próxima Sesión</h3>
-                <div className="text-center py-4">
-                    <p className="text-slate-300 font-semibold text-lg">¡Día de descanso!</p>
-                    <p className="text-sm text-slate-400 mt-1">O planea tu próxima semana.</p>
-                    <Button onClick={() => onNavigate('programs')} variant="secondary" className="mt-4">
-                        Ver Programas
-                    </Button>
-                </div>
-            </Card>
-        );
-    }
-
-    const { program, session, weekVariant } = sessionInfo;
-
-    return (
-        <Card>
-            <h3 className="text-xl font-bold text-white mb-4">Próxima Sesión</h3>
-            <div className="glass-card-nested p-4 rounded-xl">
-                <p className="text-xs font-semibold text-primary-color">{program.name}</p>
-                <h4 className="text-2xl font-bold text-white">{session.name}</h4>
-                <p className="text-sm text-slate-400">{session.exercises.length} ejercicios</p>
-            </div>
-            <div className="mt-4 space-y-2">
-                <Button onClick={() => onStart(session, program, weekVariant)} className="w-full !py-3 !text-base">
-                    <PlayIcon /> Empezar Entrenamiento
-                </Button>
-                 <Button onClick={() => onNavigate('program-detail', program)} variant="secondary" className="w-full">
-                    Ver Detalles
-                </Button>
-            </div>
-             <div className="mt-4 pt-3 border-t border-slate-700/50">
-                <p className="text-xs text-center text-slate-500 mb-2">¿No puedes entrenar hoy?</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                    <button onClick={() => handleSkip('sick')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">🤒 Enfermo/a</button>
-                    <button onClick={() => handleSkip('vacation')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">✈️ Vacaciones</button>
-                    <button onClick={() => handleSkip('gym_closed')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">❌ Gym Cerrado</button>
-                    <button onClick={() => handleSkip('other')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">🤔 Otro...</button>
-                </div>
-            </div>
-        </Card>
-    );
-};
-
-
-const BodyLabWidget: React.FC<{ analysis: BodyLabAnalysis | null, onNavigate: (view: View) => void }> = ({ analysis, onNavigate }) => {
-    if (!analysis) {
-        return (
-            <Card className="bg-gradient-to-br from-sky-900/50 to-slate-900/50 border-sky-600/50">
-                <div className="text-center">
-                    <BrainIcon className="mx-auto text-sky-300" size={48} />
-                    <h3 className="text-xl font-bold text-white mt-3">Descubre tu Perfil de Atleta</h3>
-                    <p className="text-sm text-slate-300 mt-1">Usa la IA de BodyLab para entender tus fortalezas y debilidades únicas.</p>
-                    <Button onClick={() => onNavigate('body-lab')} className="mt-4">
-                        <SparklesIcon /> Analizar Ahora
-                    </Button>
-                </div>
-            </Card>
-        );
-    }
-
-    return (
-        <Card onClick={() => onNavigate('body-lab')} className="cursor-pointer bg-gradient-to-br from-sky-900/30 to-slate-900/30">
-            <div className="flex items-center gap-4">
-                <BrainIcon className="text-sky-300 flex-shrink-0" size={40} />
-                <div className="flex-1">
-                    <p className="text-xs font-semibold text-sky-400">TU PERFIL DE ATLETA</p>
-                    <h3 className="text-lg font-bold text-white truncate">"{analysis.profileTitle}"</h3>
-                </div>
-                <ChevronRightIcon className="text-slate-500" />
-            </div>
-            {analysis.strongPoints.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-sky-800/50">
-                    <h4 className="text-xs font-bold text-slate-400 flex items-center gap-1.5"><TrendingUpIcon size={14}/> PUNTOS FUERTES</h4>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {analysis.strongPoints.slice(0, 3).map(point => (
-                            <span key={point.muscle} className="text-xs font-semibold bg-green-500/20 text-green-300 px-2 py-1 rounded-full">{point.muscle}</span>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </Card>
-    );
-};
-
+import Card from './ui/Card';
+import { PlayIcon, CalendarIcon, ChevronRightIcon, ActivityIcon, ZapIcon, TrendingUpIcon, ClipboardListIcon } from './icons';
+import MuscleRecoveryWidget from './MuscleRecoveryWidget'; 
 
 interface HomeProps {
   onNavigate: (view: View, program?: Program) => void;
   onResumeWorkout: () => void;
 }
 
-const Home: React.FC<HomeProps> = ({ onNavigate, onResumeWorkout }) => {
-  const { history, skippedLogs, settings, isOnline, ongoingWorkout, bodyLabAnalysis, programs } = useAppState();
-  const { handleStartWorkout, handleSkipWorkout } = useAppDispatch();
+const Home: React.FC<HomeProps> = ({ onNavigate, onResumeWorkout }) => { 
+    const { ongoingWorkout, programs, settings, history } = useAppContext(); 
+    const { handleStartWorkout } = useAppDispatch(); 
+    const [greeting, setGreeting] = useState('');
 
-  const nextSessionInfo = useMemo<NextSessionInfo | null>(() => {
-    const todayIndex = new Date().getDay(); // 0 = Sunday
+    useEffect(() => {
+        const hour = new Date().getHours();
+        if (hour < 12) setGreeting('Buenos días');
+        else if (hour < 20) setGreeting('Buenas tardes');
+        else setGreeting('Buenas noches');
+    }, []);
 
-    // 1. Find session for today by dayOfWeek
-    for (const program of programs) {
-        for (const macro of program.macrocycles) {
-            for (const meso of macro.mesocycles) {
-                for (const week of meso.weeks) {
-                    const session = week.sessions.find(s => s.dayOfWeek === todayIndex);
-                    if (session) {
-                        return { program, session, weekVariant: week.variant };
-                    }
-                }
-            }
-        }
-    }
+    // Encontrar la sesión de hoy (Lógica simplificada V3)
+    // We assume the first program is the active one for simplicity in this context, 
+    // or we could track activeProgramId in state if strictly needed. 
+    // Adapting the path to match the actual type structure: Macrocycle -> Mesocycle -> Weeks -> Sessions
+    const activeProgram = programs[0]; // Simplified fallback to first program
+    const todaySession = activeProgram?.macrocycles[0]?.mesocycles[0]?.weeks[0]?.sessions[0]; 
 
-    // 2. If not found, find next session sequentially from last log
-    const lastLog = history.length > 0 ? history[history.length - 1] : null;
-    if (lastLog) {
-        const program = programs.find(p => p.id === lastLog.programId);
-        if (program) {
-            const allSessionsWithContext = program.macrocycles.flatMap(macro =>
-                macro.mesocycles.flatMap(meso =>
-                    meso.weeks.flatMap(week =>
-                        week.sessions.map(session => ({ session, program, weekVariant: week.variant }))
-                    )
-                )
-            );
-
-            const lastLogIndex = allSessionsWithContext.findIndex(item => item.session.id === lastLog.sessionId);
-
-            if (lastLogIndex > -1 && lastLogIndex < allSessionsWithContext.length - 1) {
-                const nextSessionData = allSessionsWithContext[lastLogIndex + 1];
-                return { program: nextSessionData.program, session: nextSessionData.session, weekVariant: nextSessionData.weekVariant };
-            }
-        }
-    }
-
-    // 3. Fallback: return the very first session of the first program if it exists
-    const firstProgram = programs[0];
-    if (firstProgram) {
-        const firstSession = firstProgram.macrocycles[0]?.mesocycles[0]?.weeks[0]?.sessions[0];
-        if (firstSession) {
-            return { program: firstProgram, session: firstSession, weekVariant: firstProgram.macrocycles[0].mesocycles[0].weeks[0].variant };
-        }
-    }
-
-    return null; // No session found
-  }, [programs, history]);
-
-  return (
-    <div className="relative">
-      <div className="absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-slate-900 via-transparent to-transparent -z-10" />
-
-      <div className="animate-fade-in space-y-8">
-          {ongoingWorkout && (
-              <div className="animate-fade-in-up" style={{ animationDelay: '-50ms' }}>
-                   <ResumeWorkoutCard ongoingWorkout={ongoingWorkout} onResume={onResumeWorkout} />
-              </div>
-          )}
-
-          <div className="animate-fade-in-up next-session-glow" style={{ animationDelay: '0ms' }}>
-              <NextSessionCard 
-                  sessionInfo={nextSessionInfo}
-                  onStart={handleStartWorkout}
-                  onSkip={handleSkipWorkout}
-                  onNavigate={onNavigate}
-              />
-          </div>
-
-          <div className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-              <WeeklySummary />
-          </div>
-
-          <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-              <h3 className="text-xl font-bold text-white mb-3">Tu Panel de Análisis</h3>
-              <div className="-mx-4">
-                  <div className="horizontal-scroll-container">
-                      <div className="shrink-0">
-                          <PerformanceScore history={history} skippedLogs={skippedLogs} isOnline={isOnline} settings={settings} />
-                      </div>
-                      <div className="shrink-0">
-                          <OnThisDayCard />
-                      </div>
-                      <div className="shrink-0">
-                          <RelativeStrengthCard history={history} settings={settings} />
-                      </div>
-                  </div>
-              </div>
-          </div>
-          
-          <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-              <BodyLabWidget analysis={bodyLabAnalysis} onNavigate={onNavigate} />
-          </div>
-          
-          <div className="animate-fade-in-up" style={{ animationDelay: '175ms' }}>
-               <ErrorBoundary><MuscleRecoveryWidget /></ErrorBoundary>
-          </div>
-
-          <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              <ProgramList onNavigate={onNavigate} />
-          </div>
-      </div>
-    </div>
-  );
-};
+    return (
+        <div className="pb-32 px-4 pt-4 space-y-6 animate-in fade-in duration-500">
+            
+            {/* Header Section */}
+            <div className="flex justify-between items-center mt-2">
+                <div>
+                    <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">{new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' })}</p>
+                    <h1 className="text-3xl font-black text-white">{greeting}, Atleta</h1>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center">
+                    <span className="font-bold text-xs">{settings.userVitals?.weight || '?'}kg</span>
+                </div>
+            </div>
+            
+            {/* Hero Card: Estado del Entrenamiento */}
+            {ongoingWorkout ? (
+                <div className="relative overflow-hidden rounded-3xl bg-indigo-600 p-6 shadow-2xl shadow-indigo-900/40">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/20 text-xs font-bold text-white border border-white/10 backdrop-blur-sm animate-pulse">
+                                <ActivityIcon size={12} /> EN CURSO
+                            </span>
+                        </div>
+                        <h2 className="text-2xl font-black text-white mb-1">{ongoingWorkout.session.name}</h2>
+                        <p className="text-indigo-200 text-sm mb-6 line-clamp-1">{ongoingWorkout.programId ? 'Programa Activo' : 'Sesión Libre'}</p>
+                        
+                        <Button onClick={onResumeWorkout} className="w-full bg-white text-indigo-700 hover:bg-indigo-50 border-none shadow-lg">
+                            Reanudar Sesión
+                        </Button>
+                    </div>
+                </div>
+            ) : todaySession ? (
+                <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-xl">
+                    {/* Imagen de fondo del programa si existe */}
+                    {activeProgram?.coverImage && (
+                        <div className="absolute inset-0 opacity-40 bg-cover bg-center" style={{ backgroundImage: `url(${activeProgram.coverImage})` }} />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent" />
+                    <div className="relative z-10">
+                        <p className="text-slate-400 text-xs font-bold uppercase mb-1">{activeProgram?.name}</p>
+                        <h2 className="text-3xl font-black text-white mb-2 leading-none">{todaySession.name}</h2>
+                        <div className="flex gap-2 mb-6 text-sm text-slate-300">
+                            <span className="flex items-center gap-1"><ZapIcon size={14} className="text-yellow-500"/> {todaySession.exercises.length} Ejercicios</span>
+                        </div>
+                        <Button onClick={() => handleStartWorkout(todaySession, activeProgram!)} className="w-full" size="lg">
+                            <PlayIcon className="mr-2" size={20}/> Empezar Entreno
+                        </Button>
+                    </div>
+                </div>
+            ) : (
+                <Card variant="glass" className="flex flex-col items-center text-center py-8">
+                    <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center mb-4">
+                        <CalendarIcon size={32} className="text-slate-400"/>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-1">Día de Descanso</h3>
+                    <p className="text-slate-400 text-sm mb-6 max-w-[200px]">Aprovecha para recuperar o inicia una sesión libre.</p>
+                    <Button variant="secondary" onClick={() => onNavigate('programs')}>Ver Programas</Button>
+                </Card>
+            )}
+            
+            {/* Widgets Grid */}
+            <div className="grid grid-cols-1 gap-4">
+                {/* Widget de Recuperación */}
+                <MuscleRecoveryWidget />
+                
+                {/* Acceso Rápido */}
+                <div className="grid grid-cols-2 gap-4">
+                    <Card variant="outline" className="p-4 active:scale-95 transition-transform cursor-pointer" onClick={() => onNavigate('progress')}>
+                        <div className="bg-green-500/10 w-10 h-10 rounded-lg flex items-center justify-center mb-3 text-green-500"><TrendingUpIcon size={20}/></div>
+                        <h4 className="font-bold text-white text-sm">Mi Progreso</h4>
+                        <p className="text-xs text-slate-500">Ver estadísticas</p>
+                    </Card>
+                    <Card variant="outline" className="p-4 active:scale-95 transition-transform cursor-pointer" onClick={() => onNavigate('feed')}>
+                        <div className="bg-blue-500/10 w-10 h-10 rounded-lg flex items-center justify-center mb-3 text-blue-500"><ClipboardListIcon size={20}/></div>
+                        <h4 className="font-bold text-white text-sm">Historial</h4>
+                        <p className="text-xs text-slate-500">{history.length} sesiones</p>
+                    </Card>
+                </div>
+            </div>
+        </div>
+    );
+}; 
 
 export default Home;

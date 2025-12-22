@@ -1,12 +1,13 @@
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { AppProvider } from './contexts/AppContext';
+import './index.css'; // <--- ESTA LINEA ES CRÍTICA PARA LOS ESTILOS
 
 // PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // The leading slash ensures the path is resolved from the root of the domain.
     navigator.serviceWorker.register('/service-worker.js').then(registration => {
       console.log('ServiceWorker registration successful with scope: ', registration.scope);
     }, err => {

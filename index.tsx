@@ -1,16 +1,14 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
+import { App } from './App'; // Usamos { App } porque App.tsx usa 'export const App'
 import { AppProvider } from './contexts/AppContext';
-import './index.css'; // <--- ESTA LINEA ES CRÍTICA PARA LOS ESTILOS
+import './index.css'; // <--- OBLIGATORIO para que Tailwind funcione
 
 // PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js').then(registration => {
-      console.log('ServiceWorker registration successful with scope: ', registration.scope);
-    }, err => {
+    navigator.serviceWorker.register('/service-worker.js').catch(err => {
       console.log('ServiceWorker registration failed: ', err);
     });
   });
@@ -18,11 +16,10 @@ if ('serviceWorker' in navigator) {
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
+  throw new Error('No se encontró el elemento root');
 }
 
-const root = createRoot(rootElement);
-root.render(
+createRoot(rootElement).render(
   <React.StrictMode>
     <AppProvider>
       <App />

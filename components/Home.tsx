@@ -1,35 +1,15 @@
-// components/Home.tsx
 import React, { useMemo, useState } from 'react';
-import { Program, Session, WorkoutLog, Settings, BodyProgressLog, NutritionLog, SkippedWorkoutLog, View, OngoingWorkoutState, BodyLabAnalysis, ProgramWeek, SessionBackground } from '../types';
+import { Program, Session, WorkoutLog, Settings, BodyProgressLog, NutritionLog, SkippedWorkoutLog, View, OngoingWorkoutState, BodyLabAnalysis, ProgramWeek } from '../types';
 import PerformanceScore from './PerformanceScore';
 import Card from './ui/Card';
 import Button from './ui/Button';
 import { PlayIcon, FlameIcon, TrophyIcon, ClockIcon, BarChartIcon, BookOpenIcon, PlusIcon, ChevronRightIcon, PauseIcon, BrainIcon, SparklesIcon, TrendingUpIcon, XCircleIcon } from './icons';
-import { formatLargeNumber, getWeekId, calculateStreak, calculateBrzycki1RM } from '../utils/calculations';
+import { formatLargeNumber, getWeekId, calculateStreak } from '../utils/calculations';
 import OnThisDayCard from './OnThisDayCard';
 import RelativeStrengthCard from './RelativeStrengthCard';
 import { useAppState, useAppDispatch } from '../contexts/AppContext';
-
-const CardBackground: React.FC<{ background?: SessionBackground }> = ({ background }) => {
-    if (!background) return null;
-
-    const bgStyle: React.CSSProperties = {
-        backgroundImage: background.type === 'image' ? `url(${background.value})` : undefined,
-        backgroundColor: background.type === 'color' ? background.value : undefined,
-        filter: background.type === 'image' ? `blur(${background.style?.blur ?? 4}px) brightness(${background.style?.brightness ?? 0.6})` : undefined,
-    };
-
-    return (
-        <>
-            <div
-                className="absolute inset-0 w-full h-full bg-cover bg-center transition-all duration-300 z-0"
-                style={bgStyle}
-            />
-            <div className="absolute inset-0 bg-black/60 z-0" />
-        </>
-    );
-};
-
+import MuscleRecoveryWidget from './MuscleRecoveryWidget';
+import ErrorBoundary from './ui/ErrorBoundary';
 
 interface NextSessionInfo {
     program: Program;
@@ -37,94 +17,39 @@ interface NextSessionInfo {
     weekVariant?: ProgramWeek['variant'];
 }
 
-const NextSessionCard: React.FC<{
-    sessionInfo: NextSessionInfo | null;
-    onStart: (session: Session, program: Program, weekVariant?: ProgramWeek['variant']) => void;
-    onSkip: (session: Session, program: Program, reason: SkippedWorkoutLog['reason'], notes?: string) => void;
-    onNavigate: (view: View, program?: Program) => void;
-}> = ({ sessionInfo, onStart, onSkip, onNavigate }) => {
+const ProgramList: React.FC<{ onNavigate: (view: View, program?: Program) => void }> = ({ onNavigate }) => {
     const { programs } = useAppState();
-    const effectiveBackground = sessionInfo?.session.background || sessionInfo?.program.background;
-
-    const handleSkip = (reason: SkippedWorkoutLog['reason']) => {
-        if (!sessionInfo) return;
-        if (reason === 'other') {
-            const notes = prompt("Por favor, introduce una breve razón para saltar el entrenamiento:");
-            if (notes) {
-                onSkip(sessionInfo.session, sessionInfo.program, reason, notes);
-            }
-        } else {
-            onSkip(sessionInfo.session, sessionInfo.program, reason);
-        }
-    };
-
+    
     return (
-        <Card className="next-session-glow">
-            {sessionInfo ? (
-                <>
-                    <h3 className="text-xl font-bold text-white mb-4">Próxima Sesión</h3>
-                    <div className="glass-card-nested p-4 rounded-xl relative overflow-hidden">
-                        <CardBackground background={effectiveBackground} />
-                        <div className="relative z-10">
-                            <p className="text-xs font-semibold text-primary-color">{sessionInfo.program.name}</p>
-                            <h4 className="text-2xl font-bold text-white">{sessionInfo.session.name}</h4>
-                            <p className="text-sm text-slate-400">{sessionInfo.session.exercises.length} ejercicios</p>
+        <Card>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2"><BookOpenIcon /> Mis Programas</h3>
+                <Button onClick={() => onNavigate('program-editor')} variant="secondary" className="!text-xs !py-1">
+                    <PlusIcon size={14}/> Nuevo
+                </Button>
+            </div>
+            {programs.length > 0 ? (
+                <div className="space-y-2">
+                    {programs.slice(0, 3).map(program => (
+                        <div key={program.id} onClick={() => onNavigate('program-detail', program)} className="glass-card-nested p-3 flex items-center justify-between cursor-pointer hover:bg-slate-800 transition-colors">
+                            <div>
+                                <p className="font-semibold text-slate-200">{program.name}</p>
+                                <p className="text-xs text-slate-400">{program.description}</p>
+                            </div>
+                            <ChevronRightIcon className="text-slate-500" />
                         </div>
-                    </div>
-                    <div className="mt-4 space-y-2">
-                        <Button onClick={() => onStart(sessionInfo.session, sessionInfo.program, sessionInfo.weekVariant)} className="w-full !py-3 !text-base">
-                            <PlayIcon /> Empezar Entrenamiento
-                        </Button>
-                    </div>
-                     <div className="mt-4 pt-3 border-t border-slate-700/50">
-                        <p className="text-xs text-center text-slate-500 mb-2">¿No puedes entrenar hoy?</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                            <button onClick={() => handleSkip('sick')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">🤒 Enfermo/a</button>
-                            <button onClick={() => handleSkip('vacation')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">✈️ Vacaciones</button>
-                            <button onClick={() => handleSkip('gym_closed')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">❌ Gym Cerrado</button>
-                            <button onClick={() => handleSkip('other')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">🤔 Otro...</button>
-                        </div>
-                    </div>
-                </>
+                    ))}
+                </div>
             ) : (
-                <div className="text-center py-4">
-                    <p className="text-slate-300 font-semibold text-lg">¡Día de descanso!</p>
-                    <p className="text-sm text-slate-400 mt-1">O planea tu próxima semana.</p>
+                <div className="text-center py-4 text-slate-400">
+                    <p className="text-sm">Aún no tienes programas.</p>
+                    <Button onClick={() => onNavigate('program-editor')} className="mt-3">Crear mi primer programa</Button>
                 </div>
             )}
-            
-            <div className="mt-6 pt-6 border-t border-slate-700/50">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2"><BookOpenIcon /> Mis Programas</h3>
-                    <Button onClick={() => onNavigate('program-editor')} variant="secondary" className="!text-xs !py-1">
-                        <PlusIcon size={14}/> Nuevo
-                    </Button>
-                </div>
-                {programs.length > 0 ? (
-                    <div className="space-y-2">
-                        {programs.slice(0, 3).map(program => (
-                            <div key={program.id} onClick={() => onNavigate('program-detail', program)} className="glass-card-nested p-3 flex items-center justify-between cursor-pointer hover:bg-slate-800 transition-colors relative overflow-hidden rounded-lg">
-                                <CardBackground background={program.background} />
-                                <div className="relative z-10 w-full flex items-center justify-between">
-                                    <div>
-                                        <p className="font-semibold text-slate-200">{program.name}</p>
-                                        <p className="text-xs text-slate-400">{program.description}</p>
-                                    </div>
-                                    <ChevronRightIcon className="text-slate-500" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-4 text-slate-400">
-                        <p className="text-sm">Aún no tienes programas.</p>
-                        <Button onClick={() => onNavigate('program-editor')} className="mt-3">Crear mi primer programa</Button>
-                    </div>
-                )}
-            </div>
         </Card>
     );
 };
+
 
 const WeeklySummary: React.FC = () => {
     const { history, settings } = useAppState();
@@ -198,16 +123,82 @@ const ResumeWorkoutCard: React.FC<{ ongoingWorkout: OngoingWorkoutState, onResum
     );
 };
 
+const NextSessionCard: React.FC<{
+    sessionInfo: NextSessionInfo | null;
+    onStart: (session: Session, program: Program, weekVariant?: ProgramWeek['variant']) => void;
+    onSkip: (session: Session, program: Program, reason: SkippedWorkoutLog['reason'], notes?: string) => void;
+    onNavigate: (view: View, program?: Program) => void;
+}> = ({ sessionInfo, onStart, onSkip, onNavigate }) => {
+
+    const handleSkip = (reason: SkippedWorkoutLog['reason']) => {
+        if (!sessionInfo) return;
+        if (reason === 'other') {
+            const notes = prompt("Por favor, introduce una breve razón para saltar el entrenamiento:");
+            if (notes) {
+                onSkip(sessionInfo.session, sessionInfo.program, reason, notes);
+            }
+        } else {
+            onSkip(sessionInfo.session, sessionInfo.program, reason);
+        }
+    };
+
+    if (!sessionInfo) {
+        return (
+            <Card>
+                <h3 className="text-xl font-bold text-white mb-2">Próxima Sesión</h3>
+                <div className="text-center py-4">
+                    <p className="text-slate-300 font-semibold text-lg">¡Día de descanso!</p>
+                    <p className="text-sm text-slate-400 mt-1">O planea tu próxima semana.</p>
+                    <Button onClick={() => onNavigate('programs')} variant="secondary" className="mt-4">
+                        Ver Programas
+                    </Button>
+                </div>
+            </Card>
+        );
+    }
+
+    const { program, session, weekVariant } = sessionInfo;
+
+    return (
+        <Card>
+            <h3 className="text-xl font-bold text-white mb-4">Próxima Sesión</h3>
+            <div className="glass-card-nested p-4 rounded-xl">
+                <p className="text-xs font-semibold text-primary-color">{program.name}</p>
+                <h4 className="text-2xl font-bold text-white">{session.name}</h4>
+                <p className="text-sm text-slate-400">{session.exercises.length} ejercicios</p>
+            </div>
+            <div className="mt-4 space-y-2">
+                <Button onClick={() => onStart(session, program, weekVariant)} className="w-full !py-3 !text-base">
+                    <PlayIcon /> Empezar Entrenamiento
+                </Button>
+                 <Button onClick={() => onNavigate('program-detail', program)} variant="secondary" className="w-full">
+                    Ver Detalles
+                </Button>
+            </div>
+             <div className="mt-4 pt-3 border-t border-slate-700/50">
+                <p className="text-xs text-center text-slate-500 mb-2">¿No puedes entrenar hoy?</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <button onClick={() => handleSkip('sick')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">🤒 Enfermo/a</button>
+                    <button onClick={() => handleSkip('vacation')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">✈️ Vacaciones</button>
+                    <button onClick={() => handleSkip('gym_closed')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">❌ Gym Cerrado</button>
+                    <button onClick={() => handleSkip('other')} className="py-2 px-1 bg-slate-800/50 rounded-lg hover:bg-slate-700">🤔 Otro...</button>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+
 const BodyLabWidget: React.FC<{ analysis: BodyLabAnalysis | null, onNavigate: (view: View) => void }> = ({ analysis, onNavigate }) => {
     if (!analysis) {
         return (
-            <Card className="bg-gradient-to-br from-sky-900/50 to-slate-900/50 border-sky-600/50 h-full flex flex-col justify-center">
+            <Card className="bg-gradient-to-br from-sky-900/50 to-slate-900/50 border-sky-600/50">
                 <div className="text-center">
                     <BrainIcon className="mx-auto text-sky-300" size={48} />
                     <h3 className="text-xl font-bold text-white mt-3">Descubre tu Perfil de Atleta</h3>
-                    <p className="text-sm text-slate-300 mt-1">Usa la IA de BodyLab para entender tus fortalezas y debilidades.</p>
+                    <p className="text-sm text-slate-300 mt-1">Usa la IA de BodyLab para entender tus fortalezas y debilidades únicas.</p>
                     <Button onClick={() => onNavigate('body-lab')} className="mt-4">
-                        <SparklesIcon /> Analizar
+                        <SparklesIcon /> Analizar Ahora
                     </Button>
                 </div>
             </Card>
@@ -215,7 +206,7 @@ const BodyLabWidget: React.FC<{ analysis: BodyLabAnalysis | null, onNavigate: (v
     }
 
     return (
-        <Card onClick={() => onNavigate('body-lab')} className="cursor-pointer bg-gradient-to-br from-sky-900/30 to-slate-900/30 h-full flex flex-col">
+        <Card onClick={() => onNavigate('body-lab')} className="cursor-pointer bg-gradient-to-br from-sky-900/30 to-slate-900/30">
             <div className="flex items-center gap-4">
                 <BrainIcon className="text-sky-300 flex-shrink-0" size={40} />
                 <div className="flex-1">
@@ -225,7 +216,7 @@ const BodyLabWidget: React.FC<{ analysis: BodyLabAnalysis | null, onNavigate: (v
                 <ChevronRightIcon className="text-slate-500" />
             </div>
             {analysis.strongPoints.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-sky-800/50 flex-grow flex flex-col justify-end">
+                <div className="mt-3 pt-3 border-t border-sky-800/50">
                     <h4 className="text-xs font-bold text-slate-400 flex items-center gap-1.5"><TrendingUpIcon size={14}/> PUNTOS FUERTES</h4>
                     <div className="flex flex-wrap gap-2 mt-2">
                         {analysis.strongPoints.slice(0, 3).map(point => (
@@ -251,6 +242,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onResumeWorkout }) => {
   const nextSessionInfo = useMemo<NextSessionInfo | null>(() => {
     const todayIndex = new Date().getDay(); // 0 = Sunday
 
+    // 1. Find session for today by dayOfWeek
     for (const program of programs) {
         for (const macro of program.macrocycles) {
             for (const meso of macro.mesocycles) {
@@ -264,6 +256,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onResumeWorkout }) => {
         }
     }
 
+    // 2. If not found, find next session sequentially from last log
     const lastLog = history.length > 0 ? history[history.length - 1] : null;
     if (lastLog) {
         const program = programs.find(p => p.id === lastLog.programId);
@@ -275,7 +268,9 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onResumeWorkout }) => {
                     )
                 )
             );
+
             const lastLogIndex = allSessionsWithContext.findIndex(item => item.session.id === lastLog.sessionId);
+
             if (lastLogIndex > -1 && lastLogIndex < allSessionsWithContext.length - 1) {
                 const nextSessionData = allSessionsWithContext[lastLogIndex + 1];
                 return { program: nextSessionData.program, session: nextSessionData.session, weekVariant: nextSessionData.weekVariant };
@@ -283,6 +278,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onResumeWorkout }) => {
         }
     }
 
+    // 3. Fallback: return the very first session of the first program if it exists
     const firstProgram = programs[0];
     if (firstProgram) {
         const firstSession = firstProgram.macrocycles[0]?.mesocycles[0]?.weeks[0]?.sessions[0];
@@ -291,7 +287,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onResumeWorkout }) => {
         }
     }
 
-    return null;
+    return null; // No session found
   }, [programs, history]);
 
   return (
@@ -305,7 +301,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onResumeWorkout }) => {
               </div>
           )}
 
-          <div className="animate-fade-in-up" style={{ animationDelay: '0ms' }}>
+          <div className="animate-fade-in-up next-session-glow" style={{ animationDelay: '0ms' }}>
               <NextSessionCard 
                   sessionInfo={nextSessionInfo}
                   onStart={handleStartWorkout}
@@ -318,19 +314,34 @@ const Home: React.FC<HomeProps> = ({ onNavigate, onResumeWorkout }) => {
               <WeeklySummary />
           </div>
 
-          <div className="animate-fade-in-up" style={{ animationDelay: '75ms' }}>
-            <OnThisDayCard />
-          </div>
-
           <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
               <h3 className="text-xl font-bold text-white mb-3">Tu Panel de Análisis</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <PerformanceScore history={history} skippedLogs={skippedLogs} isOnline={isOnline} settings={settings} />
-                <BodyLabWidget analysis={bodyLabAnalysis} onNavigate={onNavigate} />
-                <RelativeStrengthCard history={history} settings={settings} />
+              <div className="-mx-4">
+                  <div className="horizontal-scroll-container">
+                      <div className="shrink-0">
+                          <PerformanceScore history={history} skippedLogs={skippedLogs} isOnline={isOnline} settings={settings} />
+                      </div>
+                      <div className="shrink-0">
+                          <OnThisDayCard />
+                      </div>
+                      <div className="shrink-0">
+                          <RelativeStrengthCard history={history} settings={settings} />
+                      </div>
+                  </div>
               </div>
           </div>
           
+          <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+              <BodyLabWidget analysis={bodyLabAnalysis} onNavigate={onNavigate} />
+          </div>
+          
+          <div className="animate-fade-in-up" style={{ animationDelay: '175ms' }}>
+               <ErrorBoundary><MuscleRecoveryWidget /></ErrorBoundary>
+          </div>
+
+          <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+              <ProgramList onNavigate={onNavigate} />
+          </div>
       </div>
     </div>
   );

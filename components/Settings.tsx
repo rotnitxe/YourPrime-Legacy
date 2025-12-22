@@ -1,10 +1,9 @@
 // components/Settings.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, Program, WorkoutLog, BodyProgressLog, NutritionLog, LocalSnapshot, SessionBackground, SkippedWorkoutLog } from '../types';
+import { Settings, Program, WorkoutLog, BodyProgressLog, NutritionLog, LocalSnapshot, SessionBackground, SkippedWorkoutLog, UseGoogleDriveReturn } from '../types';
 import Card from './ui/Card';
 import Button from './ui/Button';
 import { Volume2Icon, VolumeXIcon, SaveIcon, DownloadIcon, UploadIcon, TypeIcon, TrashIcon, CloudIcon, UploadCloudIcon, DownloadCloudIcon, KeyIcon, PaletteIcon, BellIcon, PlusCircleIcon, DumbbellIcon, ChevronRightIcon, PencilIcon, SettingsIcon, Wand2Icon, CheckIcon } from './icons';
-import { UseGoogleDriveReturn } from '../hooks/useGoogleDrive';
 import useStorage from '../hooks/useLocalStorage';
 import { storageService } from '../services/storageService';
 import BackgroundEditorModal from './SessionBackgroundModal';

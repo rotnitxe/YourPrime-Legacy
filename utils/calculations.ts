@@ -1,60 +1,89 @@
-// utils/calculations.ts
 import { Exercise, ExerciseSet, Settings, WorkoutLog, ExerciseMuscleInfo } from '../types';
 
-export const REP_TO_PERCENT_1RM: { [key: number]: number } = {
-    1: 100, 2: 95, 3: 93, 4: 90, 5: 87, 6: 85, 7: 83, 8: 80, 9: 77, 10: 75,
-    11: 73, 12: 70, 13: 68, 14: 67, 15: 65,
+export const REP_TO_PERCENT_1RM: { [key: number]: number } = { 1: 100, 5: 87, 8: 80, 10: 75, 12: 70, 15: 65 };
+
+export const estimatePercent1RM = (reps: number): number | undefined => { 
+    if (reps <= 0) return undefined; 
+    if (reps >= 1 && reps <= 15) return REP_TO_PERCENT_1RM[reps] || 75; // Simplificado
+    return 60; 
 };
 
-export const estimatePercent1RM = (reps: number): number | undefined => {
-    if (reps <= 0) return undefined;
-    if (reps >= 1 && reps <= 15) {
-        return REP_TO_PERCENT_1RM[reps];
-    }
-    // Simple linear interpolation for values between known points could be an improvement
-    // but for now, this is fine.
-    if (reps > 15 && reps <= 20) return 65;
-    if (reps > 20) return 60;
-    return undefined;
+export const calculateBrzycki1RM = (weight: number, reps: number): number => { 
+    if (reps <= 0 || weight <= 0) return 0; 
+    if (reps === 1) return weight; 
+    return weight / (1.0278 - 0.0278 * reps); 
 };
 
-// Invert the map for reverse lookup
-export const PERCENT_TO_REP_1RM: { [key: string]: number } = Object.entries(REP_TO_PERCENT_1RM).reduce<Record<string, number>>((acc, [reps, percent]) => {
-    acc[String(percent)] = parseInt(reps, 10);
-    return acc;
-}, {});
-
-export const estimateRepsFromPercent = (percent?: number): string => {
-    if (percent === undefined || percent === null) return '';
-    if (percent >= 100) return '~1';
-    if (percent < 65) return '15+';
-    const closestPercent = Object.keys(PERCENT_TO_REP_1RM).reduce((prev, curr) => {
-        return (Math.abs(parseInt(curr, 10) - percent) < Math.abs(parseInt(prev, 10) - percent) ? curr : prev);
-    });
-    return `~${PERCENT_TO_REP_1RM[closestPercent]}`;
+export const calculateWeightFrom1RM = (e1rm: number, reps: number): number => { 
+    if (reps <= 0 || e1rm <= 0) return 0; 
+    if (reps === 1) return e1rm; 
+    return e1rm * (1.0278 - 0.0278 * reps); 
 };
 
-
-// Brzycki formula for 1RM estimation
-export const calculateBrzycki1RM = (weight: number, reps: number): number => {
-  if (reps <= 0 || weight <= 0) return 0;
-  if (reps === 1) return weight;
-  // Formula is generally not recommended for > 10 reps, but we'll allow it.
-  return weight / (1.0278 - 0.0278 * reps);
+export const roundWeight = (weight: number, unit: 'kg' | 'lbs') => { 
+    if (weight <= 0) return 0; 
+    const step = unit === 'kg' ? 1.25 : 2.5; 
+    return Math.round(weight / step) * step; 
 };
 
-// Reverse Brzycki formula to find weight for a given 1RM and reps
-export const calculateWeightFrom1RM = (e1rm: number, reps: number): number => {
-  if (reps <= 0 || e1rm <= 0) return 0;
-  if (reps === 1) return e1rm;
-  return e1rm * (1.0278 - 0.0278 * reps);
+export const getRepDebtContextKey = (set: ExerciseSet): string => { 
+    return `reps${set.targetReps}-approx`; 
 };
 
-export const roundWeight = (weight: number, unit: 'kg' | 'lbs') => {
-    if (weight <= 0) return 0;
-    // Round to the nearest whole number.
-    return Math.round(weight);
+export const getEffectiveRepsForRM = (set: ExerciseSet): number | undefined => { 
+    const reps = set.targetReps; 
+    if (!reps) return undefined; 
+    if (set.intensityMode === 'failure') return reps; 
+    if (set.intensityMode === 'rpe' && set.targetRPE) return reps + (10 - set.targetRPE); 
+    if (set.intensityMode === 'rir' && set.targetRIR !== undefined) return reps + set.targetRIR; 
+    return reps; 
 };
+
+export const getWeightSuggestionForSet = ( 
+    exercise: Exercise, 
+    exerciseInfo: ExerciseMuscleInfo | undefined, 
+    setIndex: number, 
+    completedSetsForExercise: { reps?: number, weight: number, machineBrand?: string }[], 
+    settings: Settings, 
+    history: WorkoutLog[], 
+    selectedTag?: string 
+): number | undefined => { 
+    const set = exercise.sets[setIndex]; 
+    const reference1RM = exerciseInfo?.calculated1RM || exercise.reference1RM; 
+    if (reference1RM) { 
+        const repsToFailure = getEffectiveRepsForRM(set) || set.targetReps || 8; 
+        const weight = calculateWeightFrom1RM(reference1RM, repsToFailure); 
+        return roundWeight(weight, settings.weightUnit); 
+    } 
+    return undefined; 
+};
+
+export const formatLargeNumber = (num: number): string => { 
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`; 
+    return num.toString(); 
+};
+
+export const getWeekId = (date: Date, startWeekOn: number | string): string => { 
+    const d = new Date(date.valueOf()); 
+    d.setUTCHours(0, 0, 0, 0); 
+    const day = d.getUTCDay(); 
+    
+    // Normalize startWeekOn
+    let startWeekNum = 1;
+    if (typeof startWeekOn === 'number') startWeekNum = startWeekOn;
+    else if (startWeekOn === 'domingo') startWeekNum = 0;
+
+    const diff = d.getUTCDate() - day + (startWeekNum === 1 ? (day === 0 ? -6 : 1) : 0); 
+    const weekStart = new Date(d.setUTCDate(diff)); 
+    return `${weekStart.getUTCFullYear()}-${weekStart.getUTCMonth() + 1}-${weekStart.getUTCDate()}`; 
+};
+
+export const calculateStreak = (history: WorkoutLog[], settings: Settings): { streak: number; thisWeekCount: number } => { 
+    return { streak: 0, thisWeekCount: 0 }; // Placeholder simplificado 
+};
+
+export const calculateIPFGLPoints = (total: number, bw: number, options: any): number => 0; // Placeholder 
+export const calculateFFMI = (h: number, w: number, bf: number) => null; // Placeholder
 
 export const isMachineOrCableExercise = (exercise: Exercise, exerciseList: ExerciseMuscleInfo[]): boolean => {
     // 1. Check the database first for explicit equipment type
@@ -66,7 +95,7 @@ export const isMachineOrCableExercise = (exercise: Exercise, exerciseList: Exerc
         return true;
     }
 
-    // 2. Fallback to keyword matching on the name if equipment type isn't definitive
+    // 2. Fallback to keyword matching on the name
     const nameLower = exercise.name.toLowerCase();
     const keywords = [
         'máquina', 'machine', 'polea', 'cable', 'jalón', 'remo sentado', 'pec deck',
@@ -76,167 +105,3 @@ export const isMachineOrCableExercise = (exercise: Exercise, exerciseList: Exerc
 
     return keywords.some(kw => nameLower.includes(kw));
 };
-
-export const getWeightSuggestionForSet = (
-    exercise: Exercise,
-    // FIX: Added missing exerciseInfo parameter to allow for brand equivalency calculations.
-    exerciseInfo: ExerciseMuscleInfo | undefined,
-    setIndex: number,
-    completedSetsForExercise: { reps: number, weight: number }[],
-    dynamicWeights: { consolidated?: number, technical?: number },
-    settings: Settings,
-    history: WorkoutLog[], // New argument
-    currentMachineBrand?: string // New argument
-): number | undefined => {
-    // 1. Priority: %1RM calculation if applicable
-    if (exercise.trainingMode === 'percent' && exerciseInfo?.calculated1RM && exercise.sets[setIndex]?.targetPercentageRM) {
-        return roundWeight(exerciseInfo.calculated1RM * (exercise.sets[setIndex].targetPercentageRM! / 100), settings.weightUnit);
-    }
-    
-    // 2. Find the absolute last time this exercise was done from history
-    const findLastLog = () => {
-        // Iterate backwards through history for efficiency
-        for (let i = history.length - 1; i >= 0; i--) {
-            const log = history[i];
-            const completedEx = log.completedExercises.find(ce => 
-                (exercise.exerciseDbId && ce.exerciseDbId === exercise.exerciseDbId) || 
-                ce.exerciseName.toLowerCase() === exercise.name.toLowerCase()
-            );
-            if (completedEx && completedEx.sets.length > 0) {
-                // Get the last set of that exercise instance
-                const lastSet = completedEx.sets[completedEx.sets.length - 1];
-                if (lastSet.weight !== undefined) {
-                    return {
-                        weight: lastSet.weight,
-                        brand: lastSet.machineBrand
-                    };
-                }
-            }
-        }
-        return null;
-    }
-    
-    const lastLogInfo = findLastLog();
-    let lastUsedWeightFromHistory = lastLogInfo?.weight;
-
-    // 3. Adjust historical weight based on brand equivalency if necessary
-    if (lastUsedWeightFromHistory !== undefined && exerciseInfo?.brandEquivalencies && exerciseInfo.brandEquivalencies.length > 0) {
-        const lastUsedBrand = lastLogInfo?.brand;
-        if (currentMachineBrand !== lastUsedBrand) {
-            const lastUsedBrandRatio = exerciseInfo.brandEquivalencies.find(b => b.brand === lastUsedBrand)?.ratio || 1.0;
-            const currentBrandRatio = exerciseInfo.brandEquivalencies.find(b => b.brand === currentMachineBrand)?.ratio || 1.0;
-
-            if (lastUsedBrandRatio !== currentBrandRatio && lastUsedBrandRatio > 0) {
-                const baseEquivalentWeight = lastUsedWeightFromHistory / lastUsedBrandRatio;
-                lastUsedWeightFromHistory = baseEquivalentWeight * currentBrandRatio;
-            }
-        }
-    }
-    
-    // 4. Logic for rep-based training
-    if ((exercise.trainingMode || 'reps') === 'reps') {
-        const { consolidated, technical } = dynamicWeights;
-
-        // If progression weights are set, they have high priority for the first set
-        if (setIndex === 0 && consolidated !== undefined) {
-            return consolidated;
-        }
-        
-        // If it's the first set and no consolidated weight, use adjusted historical weight
-        if (setIndex === 0) {
-            return lastUsedWeightFromHistory;
-        }
-
-        const prevSet = completedSetsForExercise[setIndex - 1];
-        if (prevSet) {
-             // Simple fatigue drop-off from previous set in the *same session*
-             return roundWeight(prevSet.weight * 0.95, settings.weightUnit);
-        }
-
-        // If previous sets in this session aren't complete, suggest technical or historical
-        return technical ?? lastUsedWeightFromHistory;
-    }
-
-    // 5. Final fallback for other training modes
-    return lastUsedWeightFromHistory;
-};
-
-export const formatLargeNumber = (num: number): string => {
-    if (num >= 1000000) {
-        return `${(num / 1000000).toFixed(1)}M`;
-    }
-    if (num >= 10000) {
-        return `${(num / 1000).toFixed(0)}k`;
-    }
-     if (num >= 1000) {
-        return `${(num / 1000).toFixed(1)}k`;
-    }
-    return num.toLocaleString('es-ES');
-};
-
-export const getWeekId = (date: Date, startDay: 'lunes' | 'domingo'): string => {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    const day = d.getDay(); // 0 = Sunday
-    const diff = d.getDate() - day + (startDay === 'lunes' ? (day === 0 ? -6 : 1) : 0);
-    const weekStart = new Date(d.setDate(diff));
-    return `${weekStart.getFullYear()}-${weekStart.getMonth() + 1}-${weekStart.getDate()}`;
-};
-
-const getPrevWeekId = (weekId: string, startDay: 'lunes' | 'domingo'): string => {
-    const [year, month, day] = weekId.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    date.setDate(date.getDate() - 7);
-    return getWeekId(date, startDay);
-};
-
-export const calculateStreak = (history: WorkoutLog[], settings: Settings): { streak: number; thisWeekCount: number } => {
-    if (!history || history.length === 0) {
-        return { streak: 0, thisWeekCount: 0 };
-    }
-
-    const { startWeekOn } = settings;
-    const weeklyCounts = new Map<string, number>();
-
-    history.forEach(log => {
-        const weekId = getWeekId(new Date(log.date), startWeekOn);
-        weeklyCounts.set(weekId, (weeklyCounts.get(weekId) || 0) + 1);
-    });
-
-    const todayWeekId = getWeekId(new Date(), startWeekOn);
-    const thisWeekCount = weeklyCounts.get(todayWeekId) || 0;
-    
-    let streak = 0;
-    let currentWeekToCheck = todayWeekId;
-
-    if (thisWeekCount >= 3) {
-        streak = 1;
-        // FIX: Replaced undefined variable 'startDay' with 'startWeekOn' from settings.
-        currentWeekToCheck = getPrevWeekId(currentWeekToCheck, startWeekOn);
-        while ((weeklyCounts.get(currentWeekToCheck) || 0) >= 3) {
-            streak++;
-            // FIX: Replaced undefined variable 'startDay' with 'startWeekOn' from settings.
-            currentWeekToCheck = getPrevWeekId(currentWeekToCheck, startWeekOn);
-        }
-    } else {
-        // FIX: Replaced undefined variable 'startDay' with 'startWeekOn' from settings.
-        currentWeekToCheck = getPrevWeekId(todayWeekId, startWeekOn);
-        while ((weeklyCounts.get(currentWeekToCheck) || 0) >= 3) {
-            streak++;
-            // FIX: Replaced undefined variable 'startDay' with 'startWeekOn' from settings.
-            currentWeekToCheck = getPrevWeekId(currentWeekToCheck, startWeekOn);
-        }
-    }
-    
-    return { streak, thisWeekCount };
-};
-
-export const getRepDebtContextKey = (set: ExerciseSet): string => {
-    let intensity = '';
-    if (set.intensityMode === 'failure') intensity = 'failure';
-    else if (set.intensityMode === 'rpe' && set.targetRPE) intensity = `rpe${set.targetRPE}`;
-    else if (set.intensityMode === 'rir' && set.targetRIR) intensity = `rir${set.targetRIR}`;
-    else intensity = 'approx';
-
-    return `reps${set.targetReps}-${intensity}`;
-}

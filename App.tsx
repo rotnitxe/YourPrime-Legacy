@@ -92,7 +92,7 @@ const Header: React.FC<{
     };
     
     const title = settings.headerText;
-    const isLongTitle = title.length > 15;
+    const isLongTitle = title && title.length > 15;
 
     return (
         <header style={bgStyle} className="app-header flex items-center justify-between px-4 flex-shrink-0">
@@ -533,7 +533,8 @@ export const App: React.FC = () => {
     const viewsWithSubTabBar = useMemo(() => ['program-editor', 'your-lab', 'exercise-detail', 'feed'], []);
     
     const subTabBarContext = useMemo(() => {
-        if (viewsWithSubTabBar.includes(view)) {
+        // We need to type guard the view against the string literal types
+        if ((viewsWithSubTabBar as readonly string[]).includes(view)) {
             return view as 'program-editor' | 'your-lab' | 'exercise-detail' | 'feed';
         }
         return null;
@@ -567,7 +568,7 @@ export const App: React.FC = () => {
                         session: session || { id: crypto.randomUUID(), name: 'Nueva Sesión', description: '', exercises: [], warmup: [] },
                         programId, macroIndex, mesoIndex, weekId
                     };
-                    return <SessionEditor onSave={handleSaveSession} onCancel={handleBack} existingSessionInfo={sessionInfoForEditor} isOnline={isOnline} settings={settings} saveTrigger={saveSessionTrigger} addExerciseTrigger={addExerciseTrigger} exerciseList={exerciseList} />;
+                    return <SessionEditor onSave={(session) => handleSaveSession(session, programId, macroIndex, mesoIndex, weekId)} onCancel={handleBack} existingSessionInfo={sessionInfoForEditor} isOnline={isOnline} settings={settings} saveTrigger={saveSessionTrigger} addExerciseTrigger={addExerciseTrigger} exerciseList={exerciseList} />;
                 }
                 return null;
             }

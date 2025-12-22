@@ -323,7 +323,7 @@ const SetDetails: React.FC<{
     onToggleChangeOfPlans: () => void;
     isChangeOfPlans: boolean;
     loggedSide: 'left' | null;
-}> = ({ exercise, exerciseInfo, set, isComplete, settings, onLogSet, inputs, onInputChange, dynamicWeights, onToggleChangeOfPlans, isChangeOfPlans, loggedSide }) => {
+}> = React.memo(({ exercise, exerciseInfo, set, isComplete, settings, onLogSet, inputs, onInputChange, dynamicWeights, onToggleChangeOfPlans, isChangeOfPlans, loggedSide }) => {
     
     const plateCombination = useMemo(() => {
         const weight = parseFloat(inputs.left.weight);
@@ -493,7 +493,7 @@ const SetDetails: React.FC<{
             )}
         </div>
     );
-};
+});
 
 export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     session,
@@ -542,7 +542,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     const [dynamicWeights, setDynamicWeights] = useState<Record<string, { consolidated?: number, technical?: number }>>(ongoingWorkout?.dynamicWeights || {});
     const [selectedBrands, setSelectedBrands] = useState<Record<string, string>>(ongoingWorkout?.selectedBrands || {});
     const [changeOfPlansSets, setChangeOfPlansSets] = useState<Set<string>>(new Set());
-    const [sessionPhoto, setSessionPhoto] = useState<string | null>(ongoingWorkout?.photo || null);
+    const [sessionPhoto, setSessionPhoto] = useState<string | null>(ongoingWorkout?.photoUri || null);
     
     const [pendingFinishData, setPendingFinishData] = useState<any>(null);
 
@@ -565,17 +565,21 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     }, [completedSets]);
     
     useEffect(() => {
-      if (ongoingWorkout) {
-          setOngoingWorkout({
-              ...ongoingWorkout,
-              session: currentSession,
-              completedSets,
-              dynamicWeights,
-              selectedBrands,
-              photo: sessionPhoto,
-          });
-      }
-    }, [currentSession, completedSets, dynamicWeights, selectedBrands, sessionPhoto, setOngoingWorkout, ongoingWorkout]);
+      setOngoingWorkout(prevOngoingWorkout => {
+        if (!prevOngoingWorkout) {
+          // This can happen if the workout is cancelled. Don't try to update.
+          return null;
+        }
+        return {
+            ...prevOngoingWorkout,
+            session: currentSession,
+            completedSets,
+            dynamicWeights,
+            selectedBrands,
+            photoUri: sessionPhoto || undefined,
+        };
+      });
+    }, [currentSession, completedSets, dynamicWeights, selectedBrands, sessionPhoto, setOngoingWorkout]);
 
     useEffect(() => {
         if (ongoingWorkout) {
@@ -585,7 +589,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
             setCompletedSets(ongoingWorkout.completedSets || {});
             setDynamicWeights(ongoingWorkout.dynamicWeights || {});
             setSelectedBrands(ongoingWorkout.selectedBrands || {});
-            setSessionPhoto(ongoingWorkout.photo || null);
+            setSessionPhoto(ongoingWorkout.photoUri || null);
             
             const initialCOP = new Set<string>();
             if (ongoingWorkout.completedSets) {
@@ -645,8 +649,8 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
                 
                 const exerciseInfo = exerciseList.find(e => e.id === ex.exerciseDbId);
 
-                // FIX: Pass the missing `exerciseInfo` argument and the correctly constructed `completedSetsForThisExercise`.
-                const suggestedWeight = getWeightSuggestionForSet(ex, exerciseInfo, setIndex, completedSetsForThisExercise, dynamicWeights[ex.id] || {}, settings, history, selectedBrands[ex.id]);
+                // FIX: Removed extra argument `dynamicWeights[ex.id] || {}`
+                const suggestedWeight = getWeightSuggestionForSet(ex, exerciseInfo, setIndex, completedSetsForThisExercise, settings, history, selectedBrands[ex.id]);
 
                 newInputs[set.id] = {
                     left: {
@@ -782,7 +786,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         if (exercise.restTime > 0) handleStartRest(exercise.restTime, `Descanso para ${exercise.name}`);
     }, [activeExerciseId, activeSetId, exercisesForMode, selectedBrands, changeOfPlansSets, addToast, onUpdateExercise1RM, history, handleStartRest, settings, exerciseList]);
 
-    const handleSetInputChange = (setId: string, side: 'left' | 'right', field: keyof SetInputState, value: string | boolean) => {
+    const handleSetInputChange = useCallback((setId: string, side: 'left' | 'right', field: keyof SetInputState, value: string | boolean) => {
         setUnilateralSetInputs(prev => {
             const existingSetInput = prev[setId] || {
                 left: { reps: '', weight: '', rpe: '', rir: '', isFailure: false, duration: '', notes: '' },
@@ -793,9 +797,9 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
                 [setId]: { ...existingSetInput, [side]: { ...existingSetInput[side], [field]: value } }
             };
         });
-    };
+    }, []);
     
-    const handleToggleChangeOfPlans = (setId: string) => {
+    const handleToggleChangeOfPlans = useCallback((setId: string) => {
         setChangeOfPlansSets(prev => {
             const newSet = new Set(prev);
             if (newSet.has(setId)) newSet.delete(setId);
@@ -803,7 +807,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
             return newSet;
         });
         hapticImpact(ImpactStyle.Light);
-    };
+    }, []);
 
     const handleSelectBrand = (exerciseId: string, brand: string) => {
         setSelectedBrands(prev => {

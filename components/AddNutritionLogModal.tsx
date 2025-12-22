@@ -15,12 +15,13 @@ interface AddNutritionLogModalProps {
   onSave: (log: NutritionLog) => void;
   isOnline: boolean;
   settings: Settings;
+  initialDate?: string;
 }
 
-const AddNutritionLogModal: React.FC<AddNutritionLogModalProps> = ({ isOpen, onClose, onSave, isOnline, settings }) => {
+const AddNutritionLogModal: React.FC<AddNutritionLogModalProps> = ({ isOpen, onClose, onSave, isOnline, settings, initialDate }) => {
   const [logMode, setLogMode] = useState<'search' | 'describe' | 'photo'>('search');
   const [mealType, setMealType] = useState<NutritionLog['mealType']>('lunch');
-  const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
+  const [logDate, setLogDate] = useState(initialDate || new Date().toISOString().split('T')[0]);
   
   // State for 'search' mode
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,8 +47,8 @@ const AddNutritionLogModal: React.FC<AddNutritionLogModalProps> = ({ isOpen, onC
     setAiResult(null);
     setError(null);
     setIsAiLoading(false);
-    setLogDate(new Date().toISOString().split('T')[0]);
-  }, [isOpen]);
+    setLogDate(initialDate || new Date().toISOString().split('T')[0]);
+  }, [isOpen, initialDate]);
 
   const searchResults = useMemo(() => {
     if (searchQuery.length < 2) return [];
@@ -73,7 +74,8 @@ const AddNutritionLogModal: React.FC<AddNutritionLogModalProps> = ({ isOpen, onC
           const resultWithServing: Omit<FoodItem, 'id'> = {
             ...result,
             servingSize: 1,
-            servingUnit: 'unidad',
+            servingUnit: 'unit',
+            unit: result.unit || 'g'
           };
           setAiResult(resultWithServing);
       } else {
@@ -100,7 +102,8 @@ const AddNutritionLogModal: React.FC<AddNutritionLogModalProps> = ({ isOpen, onC
              const resultWithServing: Omit<FoodItem, 'id'> = {
                 ...result,
                 servingSize: 1,
-                servingUnit: 'unidad',
+                servingUnit: 'unit',
+                unit: result.unit || 'g'
              };
              setAiResult(resultWithServing);
         } else {
@@ -117,7 +120,7 @@ const AddNutritionLogModal: React.FC<AddNutritionLogModalProps> = ({ isOpen, onC
 
   const handleSave = () => {
     let newLog: NutritionLog;
-    const date = new Date(logDate + 'T00:00:00');
+    const date = new Date(logDate + 'T12:00:00Z'); // Use noon to avoid timezone issues
 
     if (logMode === 'search' && selectedFood) {
         const ratio = parseFloat(quantity) / selectedFood.servingSize;

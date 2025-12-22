@@ -336,10 +336,9 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ sessionInfo, settings, 
                         .map(([_, data]) => ({ reps: (data as OngoingSetData).reps || 0, weight: (data as OngoingSetData).weight }));
                     
                     const exerciseInfo = exerciseList.find(e => e.id === currentExercise.exerciseDbId);
-                    // FIX: Added the missing exerciseInfo argument to match the function signature.
+                    // FIX: Removed extra argument `dynamicWeights[currentExercise.id] || {}`
                     const suggestedWeight = getWeightSuggestionForSet(
                         currentExercise, exerciseInfo, setIndex, completedSetsForThisExercise, 
-                        dynamicWeights[currentExercise.id] || {},
                         settings, history, selectedBrands[currentExercise.id]
                     );
                     newInputs[set.id] = { reps: set.targetReps?.toString() || '', duration: set.targetDuration?.toString() || '', weight: suggestedWeight?.toString() || '', rpe: '', rir: '', isFailure: false };
@@ -447,6 +446,7 @@ const LogWorkoutView: React.FC<LogWorkoutViewProps> = ({ sessionInfo, settings, 
       completedExercises, notes, discomforts,
       fatigueLevel: fatigueLevel || 5, mentalClarity: mentalClarity || 5,
       gymName: settings.gymName,
+      photoUri: undefined,
     };
     onSave(newLog);
   }, [completedSets, dynamicWeights, onSave, program, currentSession, onUpdateExerciseInProgram, settings.gymName, setIsFinishModalOpen]);

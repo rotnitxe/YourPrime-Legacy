@@ -55,12 +55,6 @@ const defaultSettings: Settings = {
   themeCardStyle: 'glass',
   themeCardBorderRadius: 1.25,
   themeTabBarColor: '#172554', // Default dark blue
-  // Missing properties added
-  workoutLoggerMode: 'simple',
-  enableGlassmorphism: true,
-  enableAnimations: true,
-  enableGlowEffects: true,
-  enableZenMode: false,
 };
 
 function useSettings(): [Settings, (newSettings: Partial<Settings>) => void, boolean] {

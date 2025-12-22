@@ -74,8 +74,7 @@ const AddNutritionLogModal: React.FC<AddNutritionLogModalProps> = ({ isOpen, onC
           const resultWithServing: Omit<FoodItem, 'id'> = {
             ...result,
             servingSize: 1,
-            servingUnit: 'unit',
-            unit: result.unit || 'g'
+            servingUnit: 'unidad',
           };
           setAiResult(resultWithServing);
       } else {
@@ -102,8 +101,7 @@ const AddNutritionLogModal: React.FC<AddNutritionLogModalProps> = ({ isOpen, onC
              const resultWithServing: Omit<FoodItem, 'id'> = {
                 ...result,
                 servingSize: 1,
-                servingUnit: 'unit',
-                unit: result.unit || 'g'
+                servingUnit: 'unidad',
              };
              setAiResult(resultWithServing);
         } else {

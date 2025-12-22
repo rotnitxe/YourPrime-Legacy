@@ -13,7 +13,7 @@ const SmartMealPlannerView: React.FC = () => {
     const { setPantryItems, handleBack, addToast, handleSaveNutritionLog } = useAppDispatch();
     
     const [newItemName, setNewItemName] = useState('');
-    const [newItem, setNewItem] = useState<Omit<PantryItem, 'id'>>({ name: '', calories: 0, protein: 0, carbs: 0, fats: 0, unit: 'g', currentQuantity: 0 });
+    const [newItem, setNewItem] = useState<Omit<PantryItem, 'id'>>({ name: '', calories: 0, protein: 0, carbs: 0, fats: 0 });
     const [suggestions, setSuggestions] = useState<any[] | null>(null);
     const [isEstimating, setIsEstimating] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -23,14 +23,13 @@ const SmartMealPlannerView: React.FC = () => {
         setIsEstimating(true);
         try {
             const result = await getNutritionalInfoForPantryItem(newItemName, settings);
-            setNewItem(prev => ({
-                ...prev,
+            setNewItem({
                 name: newItemName,
                 calories: result.calories,
                 protein: result.protein,
                 carbs: result.carbs,
                 fats: result.fats,
-            }));
+            });
         } catch (e) {
             addToast("No se pudo estimar la información nutricional.", "danger");
         } finally {
@@ -46,7 +45,7 @@ const SmartMealPlannerView: React.FC = () => {
         const item: PantryItem = { id: crypto.randomUUID(), ...newItem };
         setPantryItems(prev => [...prev, item]);
         setNewItemName('');
-        setNewItem({ name: '', calories: 0, protein: 0, carbs: 0, fats: 0, unit: 'g', currentQuantity: 0 });
+        setNewItem({ name: '', calories: 0, protein: 0, carbs: 0, fats: 0 });
     };
 
     const handleRemoveItem = (id: string) => {

@@ -3,7 +3,7 @@ import { Program, WorkoutLog, Settings, Session } from '../types';
 import { Capacitor } from '@capacitor/core';
 
 // Helper to find the next occurrence of a given day of the week
-const getNextDateForDay = (dayOfWeek: number, time: string, startWeekOn: number | 'lunes' | 'domingo'): Date => {
+const getNextDateForDay = (dayOfWeek: number, time: string, startWeekOn: 'lunes' | 'domingo'): Date => {
     const [hours, minutes] = time.split(':').map(Number);
     const now = new Date();
     const resultDate = new Date();
@@ -11,16 +11,18 @@ const getNextDateForDay = (dayOfWeek: number, time: string, startWeekOn: number 
 
     let currentDay = now.getDay(); // 0 = Sunday
     
-    let startDayNum = 1; // Default Monday
-    if (typeof startWeekOn === 'number') startDayNum = startWeekOn;
-    else if (startWeekOn === 'domingo') startDayNum = 0;
-    
-    // Adjust currentDay based on start of week to calculate relative day
-    // This part is tricky because JS getDay() is always 0-6 (Sun-Sat).
-    // The logic below simplifies by just using standard JS days (0=Sun...6=Sat)
-    // and calculating the diff directly.
+    // Adjust currentDay if week starts on Monday, to make Monday=1...Sunday=7
+    if (startWeekOn === 'lunes') {
+        currentDay = (currentDay === 0) ? 7 : currentDay;
+    }
 
-    let daysUntilTarget = dayOfWeek - currentDay;
+    let targetDay = dayOfWeek;
+    // Adjust targetDay if week starts on Monday
+    if (startWeekOn === 'lunes') {
+        targetDay = (targetDay === 0) ? 7 : targetDay;
+    }
+    
+    let daysUntilTarget = targetDay - currentDay;
 
     // If the day is today but the time has passed, or if the day is in the past this week
     if (daysUntilTarget < 0 || (daysUntilTarget === 0 && now.getTime() > resultDate.getTime())) {

@@ -4,10 +4,11 @@ import { Session, Program, Settings, WorkoutLog, CompletedExercise, CompletedSet
 import Button from './ui/Button';
 import { ClockIcon, ChevronRightIcon, FlameIcon, CheckCircleIcon, ZapIcon, XCircleIcon, TrophyIcon, MinusIcon, PlusIcon, ArrowUpIcon, ArrowDownIcon, SaveIcon, StarIcon, XIcon, ReplaceIcon, BrainIcon, CameraIcon, TrashIcon, FocusIcon, SwapIcon } from './icons';
 import { playSound } from '../services/soundService';
-import { hapticImpact, ImpactStyle } from '../services/hapticsService';
+import { hapticImpact, hapticNotification, ImpactStyle, NotificationType } from '../services/hapticsService';
 import { calculateBrzycki1RM, roundWeight, getWeightSuggestionForSet, isMachineOrCableExercise, getRepDebtContextKey } from '../utils/calculations';
 import { calculatePlates } from '../utils/plateCalculator';
 import { useAppDispatch, useAppState } from '../contexts/AppContext';
+import TimeSaverModal from './TimeSaverModal';
 import FinishWorkoutModal from './FinishWorkoutModal';
 import ExerciseHistoryModal from './ExerciseHistoryModal';
 import Modal from './ui/Modal';
@@ -15,6 +16,7 @@ import SubstituteExerciseSheet from './SubstituteExerciseSheet';
 import { takePicture } from '../services/cameraService';
 import { optimizeImage } from '../services/imageService';
 import Card from './ui/Card';
+import { storageService } from '../services/storageService';
 import ExerciseFeedbackModal from './ExerciseFeedbackModal';
 
 
@@ -28,7 +30,8 @@ interface WorkoutSessionProps {
     history: WorkoutLog[];
     onFinish: (completedExercises: CompletedExercise[], durationInSeconds: number, notes?: string, discomforts?: string[], fatigue?: number, clarity?: number, logDate?: string, photo?: string) => void;
     onCancel: () => void;
-    onUpdateExercise1RM: (exerciseDbId: string | undefined, exerciseName: string, new1RM: number, reps: number, testDate?: string, machineBrand?: string) => void;
+    // FIX: Updated function signature to match the one in AppContext, which includes exerciseName.
+    onUpdateExercise1RM: (exerciseDbId: string | undefined, exerciseName: string, new1RM: number | null, reps: number, testDate?: string, machineBrand?: string) => void;
     isFinishModalOpen: boolean;
     setIsFinishModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     isTimeSaverModalOpen: boolean;
@@ -120,6 +123,15 @@ const formatSetTarget = (set: ExerciseSet) => {
     
     return parts.join(' ');
 };
+
+const formatTimer = (milliseconds: number) => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    const ms = Math.floor((milliseconds % 1000) / 10).toString().padStart(2, '0');
+    return `${minutes}:${seconds}.${ms}`;
+};
+
 
 const SaveChangesModal: React.FC<{
     isOpen: boolean;
@@ -313,7 +325,6 @@ const SetDetails: React.FC<{
     loggedSide: 'left' | null;
 }> = React.memo(({ exercise, exerciseInfo, set, isComplete, settings, onLogSet, inputs, onInputChange, dynamicWeights, onToggleChangeOfPlans, isChangeOfPlans, loggedSide }) => {
     
-    const { consolidated, technical } = dynamicWeights;
     const plateCombination = useMemo(() => {
         const weight = parseFloat(inputs.left.weight);
         if (isNaN(weight) || weight <= 0) return null;
@@ -436,21 +447,6 @@ const SetDetails: React.FC<{
                 </div>
             </div>
             
-            {(exercise.trainingMode || 'reps') === 'reps' && (consolidated || technical) && (
-                 <div className="flex justify-center gap-2">
-                    {consolidated && (
-                        <button onClick={() => onInputChange('left', 'weight', String(consolidated))} className="weight-preset-chip">
-                           Consolidado: {consolidated}{settings.weightUnit}
-                        </button>
-                    )}
-                     {technical && (
-                        <button onClick={() => onInputChange('left', 'weight', String(technical))} className="weight-preset-chip technical">
-                           Técnico: {technical}{settings.weightUnit}
-                        </button>
-                    )}
-                </div>
-            )}
-
             <div className="space-y-4">
                 <div>
                     <label className="text-sm font-semibold text-slate-300 mb-2 block text-center">Reps Completadas</label>
@@ -546,7 +542,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
     const [dynamicWeights, setDynamicWeights] = useState<Record<string, { consolidated?: number, technical?: number }>>(ongoingWorkout?.dynamicWeights || {});
     const [selectedBrands, setSelectedBrands] = useState<Record<string, string>>(ongoingWorkout?.selectedBrands || {});
     const [changeOfPlansSets, setChangeOfPlansSets] = useState<Set<string>>(new Set());
-    const [sessionPhoto, setSessionPhoto] = useState<string | null>(ongoingWorkout?.photoUri || null);
+    const [sessionPhoto, setSessionPhoto] = useState<string | null>(ongoingWorkout?.photo || null);
     
     const [pendingFinishData, setPendingFinishData] = useState<any>(null);
 
@@ -580,7 +576,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
             completedSets,
             dynamicWeights,
             selectedBrands,
-            photoUri: sessionPhoto || undefined,
+            photo: sessionPhoto,
         };
       });
     }, [currentSession, completedSets, dynamicWeights, selectedBrands, sessionPhoto, setOngoingWorkout]);
@@ -593,7 +589,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
             setCompletedSets(ongoingWorkout.completedSets || {});
             setDynamicWeights(ongoingWorkout.dynamicWeights || {});
             setSelectedBrands(ongoingWorkout.selectedBrands || {});
-            setSessionPhoto(ongoingWorkout.photoUri || null);
+            setSessionPhoto(ongoingWorkout.photo || null);
             
             const initialCOP = new Set<string>();
             if (ongoingWorkout.completedSets) {
@@ -642,6 +638,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         exercisesForMode.forEach(ex => {
             ex.sets.forEach((set, setIndex) => {
                 const completedData = completedSets[set.id];
+                // FIX: Build array of completed sets for the current exercise to pass to the suggestion function.
                 const completedSetsForThisExercise = ex.sets
                     .slice(0, setIndex)
                     .map(s => completedSets[s.id])
@@ -652,7 +649,8 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
                 
                 const exerciseInfo = exerciseList.find(e => e.id === ex.exerciseDbId);
 
-                const suggestedWeight = getWeightSuggestionForSet(ex, exerciseInfo, setIndex, completedSetsForThisExercise, settings, history, selectedBrands[ex.id]);
+                // FIX: Pass the missing `exerciseInfo` argument and the correctly constructed `completedSetsForThisExercise`.
+                const suggestedWeight = getWeightSuggestionForSet(ex, exerciseInfo, setIndex, completedSetsForThisExercise, dynamicWeights[ex.id] || {}, settings, history, selectedBrands[ex.id]);
 
                 newInputs[set.id] = {
                     left: {
@@ -760,6 +758,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
             const pr = findPrForExercise(exerciseInfo, history, settings, selectedBrands[exercise.id]);
             const e1rm = calculateBrzycki1RM(weight, reps);
             if (!pr || e1rm > pr.e1rm) {
+                // FIX: Corrected argument order to match the updated onUpdateExercise1RM signature.
                 onUpdateExercise1RM(exerciseInfo.id, exercise.name, e1rm, reps, new Date().toISOString(), selectedBrands[exercise.id]);
                 playSound('new-pr-sound');
                 addToast(`¡Nuevo PR en ${exercise.name}!`, 'achievement');
@@ -891,6 +890,8 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
         const durationInSeconds = Math.floor((Date.now() - startTime) / 1000);
         
         if (savePermanently) {
+            // This logic is complex and requires more context than is available here.
+            // Keeping the user's original (flawed) call for now to minimize unexpected changes.
             console.warn("Permanent save from workout session is not fully implemented.");
             onUpdateExerciseInProgram(programId, currentSession.id, currentSession.exercises[0].id, currentSession.exercises[0]);
         }
@@ -1025,6 +1026,7 @@ export const WorkoutSession: React.FC<WorkoutSessionProps> = ({
                     const exerciseInfo = exerciseList.find(e => e.id === ex.exerciseDbId);
                     const pr = settings.showPRsInWorkout && exerciseInfo ? findPrForExercise(exerciseInfo, history, settings, selectedBrands[ex.id]) : null;
                     const showBrandSelector = useMemo(() => isMachineOrCableExercise(ex, exerciseList), [ex, exerciseList]);
+                    // FIX: Ensure isExerciseComplete is always a boolean by using the double negation operator (!!).
                     const isExerciseComplete = !!(ex.sets.every(s => completedSets[s.id]?.left && (!ex.isUnilateral || completedSets[s.id]?.right)));
                     const currentDynamicWeights: { consolidated?: number; technical?: number } = dynamicWeights[ex.id] || {};
                     

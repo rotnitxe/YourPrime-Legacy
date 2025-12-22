@@ -142,8 +142,7 @@ export const getNutritionalInfo = async (description: string, settings: Settings
         carbs: parsed.carbs || 0,
         fats: parsed.fats || 0,
         servingSize: 1,
-        servingUnit: 'unit',
-        unit: 'g' // Added default unit
+        servingUnit: 'unidad'
     };
 };
 
@@ -202,8 +201,7 @@ export const generateBodyLabAnalysis = async (programs: Program[], history: Work
 export const generateMuscleGroupAnalysis = async (muscleName: string, trainingData: any, settings: Settings): Promise<MuscleGroupAnalysis> => throwNotImplemented('generateMuscleGroupAnalysis');
 export const generateBiomechanicalAnalysis = async (data: BiomechanicalData, exercises: string[], settings: Settings): Promise<BiomechanicalAnalysis> => throwNotImplemented('generateBiomechanicalAnalysis');
 export const generateMobilityRoutine = async (target: string, settings: Settings): Promise<MobilityExercise[]> => throwNotImplemented('generateMobilityRoutine');
+// FIX: Added missing stubs
 export const generateWeightProjection = async (avgIntake: number, tdee: number, weightHistory: { date: string, weight?: number }[], targetWeight: number, settings: Settings): Promise<{ projection: string; summary: string }> => throwNotImplemented('generateWeightProjection');
 export const getNutritionalInfoForPantryItem = async (itemName: string, settings: Settings): Promise<any> => throwNotImplemented('getNutritionalInfoForPantryItem');
 export const generateMealSuggestion = async (pantryItems: PantryItem[], remainingMacros: any, settings: Settings): Promise<any> => throwNotImplemented('generateMealSuggestion');
-export const generateExercisesForPurpose = async (purpose: string, settings: Settings): Promise<{ exercises: { name: string; justification: string; primaryMuscles: string[] }[] }> => throwNotImplemented('generateExercisesForPurpose');
-export const generateExerciseProgressReport = async (exerciseName: string, exerciseLogs: WorkoutLog[], settings: Settings): Promise<{ summary: string; positives: string[]; areasForImprovement: string[] }> => throwNotImplemented('generateExerciseProgressReport');

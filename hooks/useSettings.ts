@@ -1,3 +1,4 @@
+
 // hooks/useSettings.ts
 import { useCallback } from 'react';
 import { Settings } from '../types';
@@ -14,17 +15,17 @@ const defaultSettings: Settings = {
   // Header Customization Defaults
   headerText: 'YourPrime',
   headerStyle: 'default',
-  headerFontSize: 2.25, // rem
-  headerFontWeight: 700,
-  headerGlowIntensity: 5,
+  headerFontSize: 2.5, // Larger for Bebas Neue
+  headerFontWeight: 400,
+  headerGlowIntensity: 0,
   headerCustomBgEnabled: false,
-  headerCustomBgColor: '#121212',
-  headerBgOpacity: 0.65,
-  headerBgBlur: 24,
-  // New UI Customization
-  cardThemeColor: '#1A1D2A', // Default dark slate blue
-  cardBgOpacity: 0.65,
-  cardBgBlur: 40,
+  headerCustomBgColor: '#000000',
+  headerBgOpacity: 0.9,
+  headerBgBlur: 0,
+  // New UI Customization - Deep Black Defaults
+  cardThemeColor: '#0A0A0A',
+  cardBgOpacity: 1,
+  cardBgBlur: 0,
   userVitals: {},
   calorieGoalObjective: 'maintenance',
   startWeekOn: 'lunes',
@@ -32,8 +33,8 @@ const defaultSettings: Settings = {
   reminderTime: '17:00',
   autoSyncEnabled: false,
   googleClientId: '',
-  appBackground: undefined,
-  enableParallax: true,
+  appBackground: { type: 'color', value: '#000000' }, // Force black background
+  enableParallax: false, // Disable for static clean look
   // New general settings defaults
   hapticFeedbackEnabled: true,
   showPRsInWorkout: true,
@@ -46,15 +47,15 @@ const defaultSettings: Settings = {
     deepseek: '',
     gpt: '',
   },
-  // Advanced Theme Settings
-  themePrimaryColor: '#8B5CF6', // Default purple
-  themeTextColor: '#F1F5F9', // Default slate-100
-  themeBgGradientStart: '#111118',
-  themeBgGradientEnd: '#0D0D1A',
-  themeFontFamily: 'System',
-  themeCardStyle: 'glass',
-  themeCardBorderRadius: 1.25,
-  themeTabBarColor: '#172554', // Default dark blue
+  // Advanced Theme Settings - Deep Black
+  themePrimaryColor: '#00E5FF', // Cyan
+  themeTextColor: '#FFFFFF', 
+  themeBgGradientStart: '#000000',
+  themeBgGradientEnd: '#000000',
+  themeFontFamily: 'Inter',
+  themeCardStyle: 'solid',
+  themeCardBorderRadius: 1.0,
+  themeTabBarColor: '#0A0A0A',
 };
 
 function useSettings(): [Settings, (newSettings: Partial<Settings>) => void, boolean] {
@@ -71,3 +72,4 @@ function useSettings(): [Settings, (newSettings: Partial<Settings>) => void, boo
 }
 
 export default useSettings;
+    

@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App'; // Usamos { App } porque App.tsx usa 'export const App'
+import App from './App'; /* CORREGIDO: Importación por defecto */
 import { AppProvider } from './contexts/AppContext';
-import './index.css'; // <--- OBLIGATORIO para que Tailwind funcione
+import './index.css'; /* CRÍTICO: Carga Tailwind */
 
 // PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
@@ -15,9 +15,7 @@ if ('serviceWorker' in navigator) {
 }
 
 const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error('No se encontró el elemento root');
-}
+if (!rootElement) throw new Error('No se encontró el elemento root');
 
 createRoot(rootElement).render(
   <React.StrictMode>

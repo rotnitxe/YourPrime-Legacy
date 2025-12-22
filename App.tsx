@@ -87,7 +87,7 @@ const hexToHue = (H: string | undefined): number => {
     return Math.round(h * 360);
 };
 
-export const App: React.FC = () => {
+const App: React.FC = () => {
     const state = useAppState();
     const dispatch = useAppDispatch();
     
@@ -519,3 +519,5 @@ export const App: React.FC = () => {
         </div>
     );
 }
+
+export default App;
